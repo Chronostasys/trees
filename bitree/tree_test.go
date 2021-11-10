@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+	"time"
 )
 
 type myint int
@@ -15,10 +16,11 @@ func (i myint) Hash() int {
 func TestTree_Bitree(t *testing.T) {
 	tree := &Tree{}
 	rands := []int{}
-	for i := 100; i >= 0; i -= 1 {
+	for i := 29; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
 	}
+	rand.Seed(time.Now().UnixMilli())
 	rand.Shuffle(len(rands), func(i, j int) {
 		rands[i], rands[j] = rands[j], rands[i]
 	})
@@ -33,5 +35,5 @@ func TestTree_Bitree(t *testing.T) {
 		}
 		i++
 	})
-	// tree.Print()
+	tree.Print(true)
 }

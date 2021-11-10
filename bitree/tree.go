@@ -1,5 +1,7 @@
 package bitree
 
+import "fmt"
+
 var (
 	colorReset = "\033[0m"
 
@@ -64,7 +66,9 @@ func (t *node) insert(val Hasher, tree *Tree, level int) {
 		if t.left == nil {
 			t.left = &node{val: val, red: true, father: t}
 			t.left.prebalance(tree).rebalance(tree)
-			tree.level = level + 1
+			if tree.level < level+1 {
+				tree.level = level + 1
+			}
 			return
 		}
 		t.left.insert(val, tree, level+1)
@@ -72,7 +76,9 @@ func (t *node) insert(val Hasher, tree *Tree, level int) {
 		if t.right == nil {
 			t.right = &node{val: val, red: true, father: t}
 			t.right.prebalance(tree).rebalance(tree)
-			tree.level = level + 1
+			if tree.level < level+1 {
+				tree.level = level + 1
+			}
 			return
 		}
 		t.right.insert(val, tree, level+1)
@@ -185,28 +191,34 @@ func (t *Tree) Travel(job func(val Hasher)) {
 	}
 	t.root.travel(job)
 }
-func (t *Tree) Print() {
+func (t *Tree) Print(colored bool) {
 	if t.root == nil {
 		return
 	}
 	matrix := make([][]*node, t.level+1)
 	for i := range matrix {
-		matrix[i] = make([]*node, 1<<(t.level+2))
+		matrix[i] = make([]*node, 1<<(t.level+1))
 	}
-	t.root.print(matrix, (1<<(t.level+2))/2, 0, (1<<(t.level+2))>>2)
+	t.root.print(matrix, (1<<(t.level+1))/2, 0, (1<<(t.level+1))>>2)
 	for _, v := range matrix {
 		for _, u := range v {
 			if u == nil {
-				print(" ")
+				print("  ")
 			} else {
-				color := colorReset
-				if u.red {
-					color = colorRed
+				if colored {
+					color := colorReset
+					if u.red {
+						color = colorRed
+					}
+					print(color)
 				}
-				print(color, u.val.Hash())
+				print(fmt.Sprintf("%02d", u.val.Hash()))
 			}
 		}
-		println(colorReset)
+		if colored {
+			print(colorReset)
+		}
+		println()
 	}
 }
 func (t *Tree) Search(hash int) Hasher {
