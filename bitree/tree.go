@@ -1,10 +1,15 @@
 package bitree
 
+import (
+	"fmt"
+)
+
 type node struct {
 	left  *node
 	right *node
 	// father *node
 	val Hasher
+	red bool
 }
 
 type Hasher interface {
@@ -12,7 +17,8 @@ type Hasher interface {
 }
 
 type Tree struct {
-	root *node
+	root  *node
+	total int
 }
 
 func (t *node) travel(job func(val Hasher)) {
@@ -24,6 +30,18 @@ func (t *node) travel(job func(val Hasher)) {
 		t.right.travel(job)
 	}
 
+}
+func (t *node) print(matrix [][]int, x, y, half int) {
+	if y >= 10 {
+		fmt.Println(y)
+	}
+	matrix[y][x] = t.val.Hash()
+	if t.left != nil {
+		t.left.print(matrix, x-half, y+1, half/2)
+	}
+	if t.right != nil {
+		t.right.print(matrix, x+half, y+1, half/2)
+	}
 }
 func (t *node) search(hash int) Hasher {
 	if hash == t.val.Hash() {
@@ -58,6 +76,9 @@ func (t *node) insert(val Hasher) {
 }
 
 func (t *Tree) Insert(val Hasher) {
+	defer func() {
+		t.total++
+	}()
 	if t.root == nil {
 		t.root = &node{val: val}
 		return
@@ -70,6 +91,26 @@ func (t *Tree) Travel(job func(val Hasher)) {
 		return
 	}
 	t.root.travel(job)
+}
+func (t *Tree) Print() {
+	if t.root == nil {
+		return
+	}
+	matrix := make([][]int, t.total)
+	for i := range matrix {
+		matrix[i] = make([]int, 1<<t.total)
+	}
+	t.root.print(matrix, (1<<t.total)/2, 0, (1<<t.total)>>2)
+	for _, v := range matrix {
+		for _, u := range v {
+			if u == 0 {
+				print(" ")
+			} else {
+				print(u)
+			}
+		}
+		println()
+	}
 }
 func (t *Tree) Search(hash int) Hasher {
 	if t.root == nil {
