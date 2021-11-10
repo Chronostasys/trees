@@ -25,6 +25,22 @@ func (t *node) travel(job func(val Hasher)) {
 	}
 
 }
+func (t *node) search(hash int) Hasher {
+	if hash == t.val.Hash() {
+		return t.val
+	}
+	if hash < t.val.Hash() {
+		if t.left == nil {
+			return nil
+		}
+		return t.left.search(hash)
+	} else {
+		if t.right == nil {
+			return nil
+		}
+		return t.right.search(hash)
+	}
+}
 func (t *node) insert(val Hasher) {
 	if val.Hash() < t.val.Hash() {
 		if t.left == nil {
@@ -54,4 +70,10 @@ func (t *Tree) Travel(job func(val Hasher)) {
 		return
 	}
 	t.root.travel(job)
+}
+func (t *Tree) Search(hash int) Hasher {
+	if t.root == nil {
+		return nil
+	}
+	return t.root.search(hash)
 }
