@@ -1,6 +1,7 @@
 package bitree
 
 import (
+	"math/rand"
 	"sort"
 	"testing"
 )
@@ -14,10 +15,15 @@ func (i myint) Hash() int {
 func TestTree_Bitree(t *testing.T) {
 	tree := &Tree{}
 	rands := []int{}
-	for i := 6; i > 1; i-- {
+	for i := 100; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
-		tree.Insert(myint(ran))
+	}
+	rand.Shuffle(len(rands), func(i, j int) {
+		rands[i], rands[j] = rands[j], rands[i]
+	})
+	for _, v := range rands {
+		tree.Insert(myint(v))
 	}
 	sort.Ints(rands)
 	i := 0
@@ -27,5 +33,5 @@ func TestTree_Bitree(t *testing.T) {
 		}
 		i++
 	})
-	tree.Print()
+	// tree.Print()
 }
