@@ -414,3 +414,7 @@ func (t *Tree) Delete(hash int) {
 func (t *Tree) Len() int {
 	return t.total
 }
+
+func Make() *Tree {
+	return &Tree{}
+}
