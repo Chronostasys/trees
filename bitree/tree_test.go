@@ -29,7 +29,7 @@ func TestTree_BitreeInsert(t *testing.T) {
 	}
 	sort.Ints(rands)
 	i := 0
-	tree.Travel(func(val Hasher) {
+	tree.Travel(func(val Hasher, level int) {
 		if rands[i] != val.Hash() {
 			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
 		}
@@ -40,25 +40,28 @@ func TestTree_BitreeInsert(t *testing.T) {
 func TestTree_BitreeDelete(t *testing.T) {
 	tree := &Tree{}
 	rands := []int{}
-	for i := 3; i >= 0; i -= 1 {
+	for i := 19; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
 	}
-	// rand.Seed(time.Now().UnixMilli())
-	// rand.Shuffle(len(rands), func(i, j int) {
-	// 	rands[i], rands[j] = rands[j], rands[i]
-	// })
 	for _, v := range rands {
 		tree.Insert(myint(v))
 	}
-	tree.Delete(1)
+	rand.Seed(time.Now().UnixMilli())
+	rand.Shuffle(len(rands), func(i, j int) {
+		rands[i], rands[j] = rands[j], rands[i]
+	})
+	for i := 0; i < 10; i++ {
+		tree.Delete(rands[i])
+	}
+	rands = rands[10:]
 	sort.Ints(rands)
-	// i := 0
-	// tree.Travel(func(val Hasher) {
-	// 	if rands[i] != val.Hash() {
-	// 		t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
-	// 	}
-	// 	i++
-	// })
+	i := 0
+	tree.Travel(func(val Hasher, level int) {
+		if rands[i] != val.Hash() {
+			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
+		}
+		i++
+	})
 	tree.Print(true)
 }
