@@ -45,6 +45,87 @@ func (t *node) print(matrix [][]*node, x, y, half int) {
 		t.right.print(matrix, x+half, y+1, half/2)
 	}
 }
+func (t *node) deleteMe() {
+	var n *node
+	if t.left == nil && t.right == nil {
+		n = t
+		if n.red {
+			if n.father.left == n {
+				n.father.left = nil
+			} else {
+				n.father.right = nil
+			}
+		}
+		return
+	} else if t.left == nil && t.right != nil {
+		n = t.right
+		if n.red {
+			t.val = n.val
+			t.left = n.left
+			t.right = n.right
+			if t.left != nil {
+				t.left.father = t
+			}
+			if t.right != nil {
+				t.right.father = t
+			}
+		}
+		return
+	} else if t.right == nil && t.left != nil {
+		n = t.left
+		if n.red {
+			t.val = n.val
+			t.left = n.left
+			t.right = n.right
+			if t.left != nil {
+				t.left.father = t
+			}
+			if t.right != nil {
+				t.right.father = t
+			}
+		}
+		return
+	}
+	n = t.right
+	for {
+		if n.left == nil {
+			break
+		}
+		n = n.left
+	}
+	if n.red {
+		if n.father == t {
+			t.right = n.right
+			if n.right != nil {
+				n.right.father = t
+			}
+		} else {
+			n.father.left = n.right
+			if n.right != nil {
+				n.right.father = n.father
+			}
+		}
+		t.val = n.val
+	}
+}
+func (t *node) delete(hash int) {
+	if hash == t.val.Hash() {
+		t.deleteMe()
+		return
+	}
+	if hash < t.val.Hash() {
+		if t.left == nil {
+			return
+		}
+		t.left.delete(hash)
+		return
+	} else {
+		if t.right == nil {
+			return
+		}
+		t.right.delete(hash)
+	}
+}
 func (t *node) search(hash int) Hasher {
 	if hash == t.val.Hash() {
 		return t.val
@@ -226,4 +307,11 @@ func (t *Tree) Search(hash int) Hasher {
 		return nil
 	}
 	return t.root.search(hash)
+}
+
+func (t *Tree) Delete(hash int) {
+	if t.root == nil {
+		return
+	}
+	t.root.delete(hash)
 }
