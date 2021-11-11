@@ -112,10 +112,14 @@ func (t *node) deleteMe(tree *Tree) {
 	n.deleteRedBlack(tree, t)
 
 	t.val = n.val
-	if n.father.left == n {
-		n.father.setleft(n.right)
+	if n.father == nil {
+		tree.root = nil
 	} else {
-		n.father.setright(n.right)
+		if n.father.left == n {
+			n.father.setleft(n.right)
+		} else {
+			n.father.setright(n.right)
+		}
 	}
 }
 func (t *node) deleteRedBlack(tree *Tree, del *node) {
@@ -405,4 +409,8 @@ func (t *Tree) Delete(hash int) {
 		return
 	}
 	t.root.delete(hash, t)
+}
+
+func (t *Tree) Len() int {
+	return t.total
 }

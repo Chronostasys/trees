@@ -65,3 +65,20 @@ func TestTree_BitreeDelete(t *testing.T) {
 	})
 	tree.Print(true)
 }
+func BenchmarkInsert(b *testing.B) {
+	tree := &Tree{}
+	for n := 0; n < b.N; n++ {
+		tree.Insert(myint(n))
+	}
+}
+
+func BenchmarkDelete(b *testing.B) {
+	tree := &Tree{}
+	for n := 0; n < b.N; n++ {
+		tree.Insert(myint(n))
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		tree.Delete(n)
+	}
+}
