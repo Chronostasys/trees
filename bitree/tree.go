@@ -166,7 +166,7 @@ func (t *node) deleteBlack(tree *Tree, del *node) {
 			bro.left.red = false
 			bro.red = true
 			bro.rotateright(tree)
-			// t.deleteRedBlack(tree, del)
+			t.deleteRedBlack(tree, del)
 			return
 		}
 		bro.red = true
@@ -189,7 +189,7 @@ func (t *node) deleteBlack(tree *Tree, del *node) {
 			bro.right.red = false
 			bro.red = true
 			bro.rotateleft(tree)
-			// t.deleteRedBlack(tree, del)
+			t.deleteRedBlack(tree, del)
 			return
 		}
 		bro.red = true
