@@ -68,6 +68,8 @@ func (n *node) insert(t *Tree, val Hasher) {
 			if len(n.childs) != 0 { // 向上分裂
 				lf.childs = n.childs[:t.m/2+1]
 				ri.childs = n.childs[t.m/2+1:]
+				lf.ensureReversePointer()
+				ri.ensureReversePointer()
 			}
 			if n.father != nil {
 				idx := -1
@@ -97,6 +99,8 @@ func (n *node) insert(t *Tree, val Hasher) {
 					vals:   []Hasher{myint(n.vals[t.m/2].Hash())},
 					childs: []*node{lf, ri},
 				}
+				lf.father = t.root
+				ri.father = t.root
 			} else {
 				n.vals = []Hasher{myint(ri.vals[0].Hash())}
 				n.childs = append(n.childs, lf, ri)
@@ -116,8 +120,12 @@ func (n *node) insert(t *Tree, val Hasher) {
 	if len(n.childs) <= idx {
 		n.childs[idx] = &node{
 			father: n,
-			childs: make([]*node, t.m),
 		}
 	}
 	n.childs[idx].insert(t, val)
+}
+func (n *node) ensureReversePointer() {
+	for _, v := range n.childs {
+		v.father = n
+	}
 }
