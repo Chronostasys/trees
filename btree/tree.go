@@ -43,10 +43,12 @@ func (n *node) insert(t *Tree, val Hasher) {
 		for i, v := range n.vals {
 			if v.Hash() == val.Hash() {
 				n.vals[i] = val
-				break
+				return
 			} else if v.Hash() > val.Hash() {
 				vals = append(vals, val)
 				t.total++
+				vals = append(vals, n.vals[i:]...)
+				break
 			}
 			vals = append(vals, v)
 		}
@@ -85,12 +87,19 @@ func (n *node) insert(t *Tree, val Hasher) {
 				if idx == -1 {
 					idx = len(father.vals)
 				}
-				father.vals = append(append(father.vals[:idx], myint(ri.vals[0].Hash())), father.vals[idx:]...)
-				childs := father.childs
-				father.childs = append(childs[:idx], lf, ri)
-				if idx+1 < len(childs) {
-					father.childs = append(father.childs, childs[idx+1:]...)
-				}
+				newvals := make([]Hasher, len(father.vals)+1)
+				be := father.vals[:idx]
+				ed := father.vals[idx:]
+				copy(newvals[:idx], be)
+				copy(newvals[idx+1:], ed)
+				newvals[idx] = myint(ri.vals[0].Hash())
+				father.vals = newvals
+				childs := make([]*node, len(father.childs)+1)
+				copy(childs[:idx], father.childs[:idx])
+				childs[idx] = lf
+				childs[idx+1] = ri
+				copy(childs[idx+2:], father.childs[idx+1:])
+				father.childs = childs
 				n = father
 				goto START
 			} else if len(n.childs) != 0 { // 向上分裂
@@ -112,6 +121,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 	for i, v := range n.vals {
 		if v.Hash() >= val.Hash() {
 			idx = i
+			break
 		}
 	}
 	if idx == -1 {
@@ -127,5 +137,25 @@ func (n *node) insert(t *Tree, val Hasher) {
 func (n *node) ensureReversePointer() {
 	for _, v := range n.childs {
 		v.father = n
+	}
+}
+
+func (t *Tree) Travel(job func(val Hasher, level int)) {
+	if t.root == nil {
+		return
+	}
+	t.root.travel(job, 1)
+}
+func (n *node) travel(job func(val Hasher, level int), level int) {
+	idx := 0
+	for _, v := range n.childs {
+		v.travel(job, level+1)
+	}
+	if len(n.childs) == 0 {
+		for i, v := range n.vals {
+			if i >= idx {
+				job(v, level)
+			}
+		}
 	}
 }
