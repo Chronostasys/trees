@@ -33,8 +33,16 @@ func TestTree_BtreeInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	tree := Make(500)
+	tree := Make(1000)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(myint(n))
+	}
+}
+
+func BenchmarkMap(b *testing.B) {
+	m := make(map[myint]struct{})
+	s := struct{}{}
+	for n := 0; n < b.N; n++ {
+		m[myint(n)] = s
 	}
 }

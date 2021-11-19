@@ -32,7 +32,7 @@ func Make(m int) *Tree {
 
 func makeBNode(m int) *node {
 	return &node{
-		vals:   make([]Hasher, 0, m-1),
+		vals:   make([]Hasher, 0, m),
 		childs: make([]*node, 0, m),
 	}
 }
