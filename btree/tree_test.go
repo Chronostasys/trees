@@ -10,7 +10,7 @@ import (
 func TestTree_BtreeInsert(t *testing.T) {
 	tree := Make(3)
 	rands := []int{}
-	for i := 10; i >= 0; i -= 1 {
+	for i := 60; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
 	}

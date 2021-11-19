@@ -100,6 +100,9 @@ func (n *node) insert(t *Tree, val Hasher) {
 				childs[idx+1] = ri
 				copy(childs[idx+2:], father.childs[idx+1:])
 				father.childs = childs
+				if len(n.childs) != 0 { // 向上分裂
+					ri.vals = ri.vals[1:]
+				}
 				n = father
 				goto START
 			} else if len(n.childs) != 0 { // 向上分裂
@@ -128,9 +131,12 @@ func (n *node) insert(t *Tree, val Hasher) {
 		idx = len(n.vals)
 	}
 	if len(n.childs) <= idx {
-		n.childs[idx] = &node{
+		n.childs = append(n.childs, &node{
 			father: n,
-		}
+		})
+	}
+	if len(n.childs) <= idx {
+		println()
 	}
 	n.childs[idx].insert(t, val)
 }
