@@ -33,7 +33,7 @@ func TestTree_BtreeInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	tree := Make(20)
+	tree := Make(500)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(myint(n))
 	}

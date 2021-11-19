@@ -63,9 +63,6 @@ func (n *node) insert(t *Tree, val Hasher) {
 			copy(n.vals[index+1:], n.vals[index:last])
 			n.vals[index] = val
 		}
-		vals := make([]Hasher, 0, t.m-1)
-		vals = append(vals, n.vals...)
-		n.vals = vals
 		t.total++
 	START:
 		if len(n.vals) == t.m {
@@ -76,8 +73,8 @@ func (n *node) insert(t *Tree, val Hasher) {
 			ri.vals = append(ri.vals, n.vals[t.m/2:]...)
 			ri.father = n
 			if len(n.childs) != 0 { // 向上分裂
-				lf.childs = n.childs[:t.m/2+1]
-				ri.childs = n.childs[t.m/2+1:]
+				lf.childs = append(lf.childs, n.childs[:t.m/2+1]...)
+				ri.childs = append(ri.childs, n.childs[t.m/2+1:]...)
 				lf.ensureReversePointer()
 				ri.ensureReversePointer()
 			}
@@ -86,19 +83,17 @@ func (n *node) insert(t *Tree, val Hasher) {
 				lf.father = father
 				ri.father = n.father
 				idx := father.biSearch(n.vals[0].Hash())
-				newvals := make([]Hasher, len(father.vals)+1)
-				be := father.vals[:idx]
+				last := len(father.vals) - 1
+				father.vals = append(father.vals, father.vals[last])
 				ed := father.vals[idx:]
-				copy(newvals[:idx], be)
-				copy(newvals[idx+1:], ed)
-				newvals[idx] = myint(ri.vals[0].Hash())
-				father.vals = newvals
-				childs := make([]*node, len(father.childs)+1)
-				copy(childs[:idx], father.childs[:idx])
-				childs[idx] = lf
-				childs[idx+1] = ri
-				copy(childs[idx+2:], father.childs[idx+1:])
-				father.childs = childs
+				copy(father.vals[idx+1:], ed)
+				father.vals[idx] = myint(ri.vals[0].Hash())
+				last = len(father.childs) - 1
+				father.childs = append(father.childs, father.childs[last])
+				// copy(childs[:idx], father.childs[:idx])
+				copy(father.childs[idx+2:], father.childs[idx+1:])
+				father.childs[idx] = lf
+				father.childs[idx+1] = ri
 				if len(n.childs) != 0 { // 向上分裂
 					ri.vals = ri.vals[1:]
 				}
