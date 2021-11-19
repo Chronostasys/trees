@@ -1,6 +1,8 @@
 package btree
 
-import "sort"
+import (
+	"sort"
+)
 
 type myint int
 
@@ -28,11 +30,17 @@ func Make(m int) *Tree {
 	return &Tree{m: m}
 }
 
+func makeBNode(m int) *node {
+	return &node{
+		vals:   make([]Hasher, 0, m-1),
+		childs: make([]*node, 0, m),
+	}
+}
+
 func (t *Tree) Insert(val Hasher) {
 	if t.root == nil {
-		t.root = &node{
-			vals: []Hasher{val},
-		}
+		t.root = makeBNode(t.m)
+		t.root.vals = append(t.root.vals, val)
 		t.total++
 	} else {
 		t.root.insert(t, val)
@@ -43,8 +51,8 @@ func (n *node) insert(t *Tree, val Hasher) {
 	if len(n.childs) == 0 {
 		index := n.biSearch(val.Hash())
 		// update situation
-		if index-1 > -1 && n.vals[index-1].Hash() == val.Hash() {
-			n.vals[index-1] = val
+		if index > -1 && index != len(n.vals) && n.vals[index].Hash() == val.Hash() {
+			n.vals[index] = val
 			return
 		}
 		last := len(n.vals) - 1
@@ -55,23 +63,18 @@ func (n *node) insert(t *Tree, val Hasher) {
 			copy(n.vals[index+1:], n.vals[index:last])
 			n.vals[index] = val
 		}
+		vals := make([]Hasher, 0, t.m-1)
+		vals = append(vals, n.vals...)
+		n.vals = vals
 		t.total++
-		for i, v := range n.vals {
-			if v.Hash() == val.Hash() {
-				n.vals[i] = val
-				return
-			}
-		}
 	START:
 		if len(n.vals) == t.m {
-			lf := &node{
-				vals:   n.vals[:t.m/2],
-				father: n,
-			}
-			ri := &node{
-				vals:   n.vals[t.m/2:],
-				father: n,
-			}
+			lf := makeBNode(t.m)
+			lf.vals = append(lf.vals, n.vals[:t.m/2]...)
+			lf.father = n
+			ri := makeBNode(t.m)
+			ri.vals = append(ri.vals, n.vals[t.m/2:]...)
+			ri.father = n
 			if len(n.childs) != 0 { // 向上分裂
 				lf.childs = n.childs[:t.m/2+1]
 				ri.childs = n.childs[t.m/2+1:]
@@ -103,10 +106,9 @@ func (n *node) insert(t *Tree, val Hasher) {
 				goto START
 			} else if len(n.childs) != 0 { // 向上分裂
 				ri.vals = ri.vals[1:]
-				t.root = &node{
-					vals:   []Hasher{myint(n.vals[t.m/2].Hash())},
-					childs: []*node{lf, ri},
-				}
+				t.root = makeBNode(t.m)
+				t.root.vals = append(t.root.vals, myint(n.vals[t.m/2].Hash()))
+				t.root.childs = append(t.root.childs, lf, ri)
 				lf.father = t.root
 				ri.father = t.root
 			} else {
@@ -118,12 +120,9 @@ func (n *node) insert(t *Tree, val Hasher) {
 	}
 	idx := n.biSearch(val.Hash())
 	if len(n.childs) <= idx {
-		n.childs = append(n.childs, &node{
-			father: n,
-		})
-	}
-	if len(n.childs) <= idx {
-		println()
+		no := makeBNode(t.m)
+		no.father = n
+		n.childs = append(n.childs, no)
 	}
 	n.childs[idx].insert(t, val)
 }
