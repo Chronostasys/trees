@@ -1,5 +1,7 @@
 package btree
 
+import "sort"
+
 type myint int
 
 func (i myint) Hash() int {
@@ -39,24 +41,27 @@ func (t *Tree) Insert(val Hasher) {
 
 func (n *node) insert(t *Tree, val Hasher) {
 	if len(n.childs) == 0 {
-		vals := []Hasher{}
+		index := n.biSearch(val.Hash())
+		// update situation
+		if index-1 > -1 && n.vals[index-1].Hash() == val.Hash() {
+			n.vals[index-1] = val
+			return
+		}
+		last := len(n.vals) - 1
+		if index == len(n.vals) {
+			n.vals = append(n.vals, val)
+		} else {
+			n.vals = append(n.vals, n.vals[last])
+			copy(n.vals[index+1:], n.vals[index:last])
+			n.vals[index] = val
+		}
+		t.total++
 		for i, v := range n.vals {
 			if v.Hash() == val.Hash() {
 				n.vals[i] = val
 				return
-			} else if v.Hash() > val.Hash() {
-				vals = append(vals, val)
-				t.total++
-				vals = append(vals, n.vals[i:]...)
-				break
 			}
-			vals = append(vals, v)
 		}
-		if len(vals) == len(n.vals) {
-			vals = append(vals, val)
-			t.total++
-		}
-		n.vals = vals
 	START:
 		if len(n.vals) == t.m {
 			lf := &node{
@@ -74,19 +79,10 @@ func (n *node) insert(t *Tree, val Hasher) {
 				ri.ensureReversePointer()
 			}
 			if n.father != nil {
-				idx := -1
 				father := n.father
 				lf.father = father
 				ri.father = n.father
-				for i, v := range father.vals {
-					if v.Hash() > n.vals[0].Hash() {
-						idx = i
-						break
-					}
-				}
-				if idx == -1 {
-					idx = len(father.vals)
-				}
+				idx := father.biSearch(n.vals[0].Hash())
 				newvals := make([]Hasher, len(father.vals)+1)
 				be := father.vals[:idx]
 				ed := father.vals[idx:]
@@ -120,16 +116,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 		}
 		return
 	}
-	idx := -1
-	for i, v := range n.vals {
-		if v.Hash() >= val.Hash() {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
-		idx = len(n.vals)
-	}
+	idx := n.biSearch(val.Hash())
 	if len(n.childs) <= idx {
 		n.childs = append(n.childs, &node{
 			father: n,
@@ -153,15 +140,19 @@ func (t *Tree) Travel(job func(val Hasher, level int)) {
 	t.root.travel(job, 1)
 }
 func (n *node) travel(job func(val Hasher, level int), level int) {
-	idx := 0
 	for _, v := range n.childs {
 		v.travel(job, level+1)
 	}
 	if len(n.childs) == 0 {
-		for i, v := range n.vals {
-			if i >= idx {
-				job(v, level)
-			}
+		for _, v := range n.vals {
+			job(v, level)
 		}
 	}
+}
+
+// binary search.
+func (n *node) biSearch(hash int) int {
+	return sort.Search(len(n.vals), func(i int) bool {
+		return n.vals[i].Hash() > hash
+	})
 }
