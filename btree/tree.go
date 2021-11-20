@@ -1,6 +1,7 @@
 package btree
 
 import (
+	"math"
 	"sort"
 )
 
@@ -24,10 +25,11 @@ type Tree struct {
 	root  *node
 	total int
 	m     int // 阶
+	edge  int
 }
 
 func Make(m int) *Tree {
-	return &Tree{m: m}
+	return &Tree{m: m, edge: int(math.Ceil(float64((m-1))/2)) - 1}
 }
 
 func makeBNode(m int) *node {
@@ -51,7 +53,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 	if len(n.childs) == 0 {
 		index := n.biSearch(val.Hash())
 		// update situation
-		if index > -1 && index != len(n.vals) && n.vals[index].Hash() == val.Hash() {
+		if index != len(n.vals) && n.vals[index].Hash() == val.Hash() {
 			n.vals[index] = val
 			return
 		}
@@ -146,7 +148,159 @@ func (n *node) travel(job func(val Hasher, level int), level int) {
 
 // binary search.
 func (n *node) biSearch(hash int) int {
+	if n == nil || n.vals == nil {
+		return -1
+	}
 	return sort.Search(len(n.vals), func(i int) bool {
 		return n.vals[i].Hash() > hash
 	})
+}
+
+func (t *Tree) Delete(hash int) {
+	if t.root == nil {
+		return
+	}
+	t.root.delete(t, hash)
+}
+
+func (n *node) delete(t *Tree, hash int) {
+	// leaf node
+	if len(n.childs) == 0 {
+		index := n.biSearch(hash) - 1
+		if index == -1 {
+			println()
+		}
+		// exist
+		if index != len(n.vals) && n.vals[index].Hash() == hash {
+			first := n.vals[0].Hash()
+			if index == len(n.vals)-1 {
+				n.vals = n.vals[:index]
+			} else {
+				n.vals = append(n.vals[:index], n.vals[index+1:]...)
+			}
+			t.total--
+		START:
+			if len(n.vals) >= t.edge {
+				// valid leaf, return directly
+				return
+			}
+
+			// node try to borrow val from brother
+			father := n.father
+			// root node, return
+			if father == nil {
+				return
+			}
+			var bro *node
+			idx := father.biSearch(first)
+			left := true
+			if idx-1 > -1 {
+				bro = father.childs[idx-1]
+				if len(bro.vals) > t.edge {
+					// can borrow
+					last := len(bro.vals) - 1
+					if len(n.childs) > 0 {
+						// index nodes
+						n.vals = append(n.vals, myint(0))
+						copy(n.vals[1:], n.vals[:len(n.vals)-1])
+						n.vals[0] = father.vals[idx-1]
+						father.vals[idx-1] = myint(bro.vals[last].Hash())
+						bro.vals = bro.vals[:last]
+						n.childs = append(n.childs, nil)
+						copy(n.childs[1:], n.childs[:len(n.childs)])
+						n.childs[0] = bro.childs[len(bro.childs)-1]
+						n.childs[0].father = n
+						bro.childs = bro.childs[:len(bro.childs)-1]
+						return
+					}
+					father.vals[idx-1] = myint(bro.vals[last].Hash())
+					lenn := len(n.vals)
+					n.vals = append(n.vals, myint(0))
+					copy(n.vals[1:], n.vals[:lenn])
+					n.vals[0] = bro.vals[last]
+					bro.vals = bro.vals[:last]
+					return
+				}
+			}
+			if idx+1 < len(father.childs) {
+				left = false
+				bro = father.childs[idx+1]
+				if len(bro.vals) > t.edge {
+					// can borrow
+					if len(n.childs) > 0 {
+						// index nodes
+						n.vals = append(n.vals, father.vals[idx])
+						father.vals[idx] = myint(bro.vals[0].Hash())
+						bro.vals = bro.vals[1:]
+						n.childs = append(n.childs, bro.childs[0])
+						bro.childs[0].father = n
+						bro.childs = bro.childs[1:]
+						return
+					}
+					n.vals = append(n.vals, bro.vals[0])
+					bro.vals = bro.vals[1:]
+					father.vals[idx] = myint(bro.vals[0].Hash())
+					return
+				}
+			}
+			// failed to borrow, merge it!
+			if bro == nil {
+				// seems it's the root, check it
+				if n != t.root {
+					panic("not root!")
+				}
+				return
+			}
+			if left {
+				if len(n.childs) > 0 {
+					// index merge
+					bro.vals = append(bro.vals, father.vals[idx-1])
+					bro.childs = append(bro.childs, n.childs...)
+					for _, v := range n.childs {
+						v.father = bro
+					}
+				}
+				bro.vals = append(bro.vals, n.vals...)
+				father.vals = append(father.vals[:idx-1], father.vals[idx:]...)
+				father.childs = append(father.childs[:idx], father.childs[idx+1:]...)
+				n = father
+				if t.root == n {
+					if len(n.childs) == 1 {
+						t.root = n.childs[0]
+					}
+					return
+				}
+				goto START
+			} else {
+				if len(n.childs) > 0 {
+					// index merge
+					n.vals = append(n.vals, father.vals[idx])
+					n.childs = append(n.childs, bro.childs...)
+					for _, v := range bro.childs {
+						v.father = n
+					}
+				}
+				n.vals = append(n.vals, bro.vals...)
+				father.vals = append(father.vals[:idx], father.vals[idx+1:]...)
+				father.childs = append(father.childs[:idx+1], father.childs[idx+2:]...)
+				n = father
+				if t.root == n {
+					if len(n.childs) == 1 {
+						t.root = n.childs[0]
+					}
+					return
+				}
+				goto START
+			}
+		}
+		return
+	}
+	// index node
+	idx := n.biSearch(hash)
+	if len(n.childs) <= idx {
+		// not exist
+		return
+	}
+	n.childs[idx].delete(t, hash)
+
 }
