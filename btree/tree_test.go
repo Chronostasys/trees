@@ -5,6 +5,8 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/google/btree"
 )
 
 func TestTree_BtreeInsert(t *testing.T) {
@@ -33,17 +35,19 @@ func TestTree_BtreeInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	tree := Make(1000)
+	tree := Make(256)
+	arr := rand.Perm(b.N)
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		tree.Insert(myint(n))
+		tree.Insert(myint(arr[n]))
 	}
 }
-
-func BenchmarkMap(b *testing.B) {
-	m := make(map[myint]struct{})
-	s := struct{}{}
+func BenchmarkGoogleInsert(b *testing.B) {
+	tree := btree.New(256)
+	arr := rand.Perm(b.N)
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		m[myint(n)] = s
+		tree.ReplaceOrInsert(btree.Int(arr[n]))
 	}
 }
 
@@ -77,46 +81,48 @@ func TestTree_BtreeDelete(t *testing.T) {
 }
 
 func BenchmarkDelete(b *testing.B) {
-	tree := Make(100)
+	tree := Make(256)
+	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
-		tree.Insert(myint(n))
+		tree.Insert(myint(arr[n]))
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		tree.Delete(n)
+		tree.Delete(arr[n])
+	}
+}
+func BenchmarkGoogleDelete(b *testing.B) {
+	tree := btree.New(256)
+	arr := rand.Perm(b.N)
+	for n := 0; n < b.N; n++ {
+		tree.ReplaceOrInsert(btree.Int(arr[n]))
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		tree.Delete(btree.Int(arr[n]))
 	}
 }
 
-func BenchmarkMapDelete(b *testing.B) {
-	m := make(map[myint]struct{})
-	s := struct{}{}
-	for n := 0; n < b.N; n++ {
-		m[myint(n)] = s
-	}
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		delete(m, myint(n))
-	}
-}
 func BenchmarkSearch(b *testing.B) {
-	tree := Make(1000)
+	tree := Make(256)
+	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
-		tree.Insert(myint(n))
+		tree.Insert(myint(arr[n]))
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		tree.Search(n)
+		tree.Search(arr[n])
 	}
 }
-func BenchmarkMapSearch(b *testing.B) {
-	m := make(map[myint]struct{})
-	s := struct{}{}
+func BenchmarkGoogleSearch(b *testing.B) {
+	tree := btree.New(256)
+	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
-		m[myint(n)] = s
+		tree.ReplaceOrInsert(btree.Int(arr[n]))
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_ = m[myint(n)]
+		tree.Get(btree.Int(arr[n]))
 	}
 }
 
