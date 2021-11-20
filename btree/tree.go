@@ -304,3 +304,20 @@ func (n *node) delete(t *Tree, hash int) {
 	n.childs[idx].delete(t, hash)
 
 }
+
+func (t *Tree) Search(hash int) Hasher {
+	if t.root == nil {
+		return nil
+	}
+	return t.root.search(hash)
+}
+func (n *node) search(hash int) Hasher {
+	idx := n.biSearch(hash)
+	if len(n.childs) == 0 {
+		if idx-1 < 0 {
+			return nil
+		}
+		return n.vals[idx-1]
+	}
+	return n.childs[idx].search(hash)
+}

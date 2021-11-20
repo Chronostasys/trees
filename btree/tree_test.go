@@ -98,3 +98,40 @@ func BenchmarkMapDelete(b *testing.B) {
 		delete(m, myint(n))
 	}
 }
+func BenchmarkSearch(b *testing.B) {
+	tree := Make(1000)
+	for n := 0; n < b.N; n++ {
+		tree.Insert(myint(n))
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		tree.Search(n)
+	}
+}
+func BenchmarkMapSearch(b *testing.B) {
+	m := make(map[myint]struct{})
+	s := struct{}{}
+	for n := 0; n < b.N; n++ {
+		m[myint(n)] = s
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = m[myint(n)]
+	}
+}
+
+func TestTree_BtreeSearch(t *testing.T) {
+	tree := Make(30)
+	for i := 1000; i >= 0; i -= 1 {
+		tree.Insert(myint(i))
+	}
+	val := tree.Search(500)
+	if val.(myint) != 500 {
+		t.Fatal("search get wrong value. Expect", 500, "got", val.(myint))
+	}
+	val = tree.Search(-1)
+	if val != nil {
+		t.Fatal("search get wrong value. Expect nil", "got", val.(myint))
+	}
+	// tree.Print(true)
+}
