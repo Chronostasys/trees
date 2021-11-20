@@ -53,8 +53,8 @@ func (n *node) insert(t *Tree, val Hasher) {
 	if len(n.childs) == 0 {
 		index := n.biSearch(val.Hash())
 		// update situation
-		if index != len(n.vals) && n.vals[index].Hash() == val.Hash() {
-			n.vals[index] = val
+		if index-1 > -1 && n.vals[index-1].Hash() == val.Hash() {
+			n.vals[index-1] = val
 			return
 		}
 		last := len(n.vals) - 1
