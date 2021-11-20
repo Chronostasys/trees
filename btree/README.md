@@ -13,15 +13,15 @@ goarch: amd64
 pkg: github.com/Chronostasys/trees/btree
 cpu: AMD Ryzen 7 5700U with Radeon Graphics         
 BenchmarkInsert
-BenchmarkInsert-16               1000000              1201 ns/op
+BenchmarkInsert-16               1000000              1494 ns/op              52 B/op          1 allocs/op
 BenchmarkGoogleInsert
-BenchmarkGoogleInsert-16         1000000              1300 ns/op
+BenchmarkGoogleInsert-16         1000000              2208 ns/op              65 B/op          1 allocs/op
 BenchmarkDelete
-BenchmarkDelete-16               1000000              1124 ns/op
+BenchmarkDelete-16               1000000              1814 ns/op              11 B/op          0 allocs/op
 BenchmarkGoogleDelete
-BenchmarkGoogleDelete-16         1000000              1361 ns/op
+BenchmarkGoogleDelete-16         1000000              2223 ns/op              10 B/op          0 allocs/op
 BenchmarkSearch
-BenchmarkSearch-16               1237681              1035 ns/op
+BenchmarkSearch-16               1000000              1135 ns/op               0 B/op          0 allocs/op
 BenchmarkGoogleSearch
-BenchmarkGoogleSearch-16         1000000              1042 ns/op
+BenchmarkGoogleSearch-16         1000000              1159 ns/op               7 B/op          0 allocs/op
 ```

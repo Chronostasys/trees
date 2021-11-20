@@ -9,10 +9,14 @@ import (
 	"github.com/google/btree"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixMilli())
+}
+
 func TestTree_BtreeInsert(t *testing.T) {
-	tree := Make(3)
+	tree := Make(1024)
 	rands := []int{}
-	for i := 60; i >= 0; i -= 1 {
+	for i := 1000000; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
 	}
@@ -35,7 +39,7 @@ func TestTree_BtreeInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	tree := Make(256)
+	tree := Make(1024)
 	arr := rand.Perm(b.N)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -43,7 +47,7 @@ func BenchmarkInsert(b *testing.B) {
 	}
 }
 func BenchmarkGoogleInsert(b *testing.B) {
-	tree := btree.New(256)
+	tree := btree.New(1022)
 	arr := rand.Perm(b.N)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -52,9 +56,9 @@ func BenchmarkGoogleInsert(b *testing.B) {
 }
 
 func TestTree_BtreeDelete(t *testing.T) {
-	tree := Make(30)
+	tree := Make(1024)
 	rands := []int{}
-	for i := 1000; i >= 0; i -= 1 {
+	for i := 1000000; i >= 0; i -= 1 {
 		ran := i
 		rands = append(rands, ran)
 	}
@@ -65,10 +69,10 @@ func TestTree_BtreeDelete(t *testing.T) {
 	rand.Shuffle(len(rands), func(i, j int) {
 		rands[i], rands[j] = rands[j], rands[i]
 	})
-	for i := 0; i < 500; i++ {
+	for i := 0; i < 50000; i++ {
 		tree.Delete(rands[i])
 	}
-	rands = rands[500:]
+	rands = rands[50000:]
 	sort.Ints(rands)
 	i := 0
 	tree.Travel(func(val Hasher, level int) {
@@ -81,7 +85,7 @@ func TestTree_BtreeDelete(t *testing.T) {
 }
 
 func BenchmarkDelete(b *testing.B) {
-	tree := Make(256)
+	tree := Make(1024)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(myint(arr[n]))
@@ -92,7 +96,7 @@ func BenchmarkDelete(b *testing.B) {
 	}
 }
 func BenchmarkGoogleDelete(b *testing.B) {
-	tree := btree.New(256)
+	tree := btree.New(1024)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.ReplaceOrInsert(btree.Int(arr[n]))
@@ -104,7 +108,7 @@ func BenchmarkGoogleDelete(b *testing.B) {
 }
 
 func BenchmarkSearch(b *testing.B) {
-	tree := Make(256)
+	tree := Make(1024)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(myint(arr[n]))
@@ -115,7 +119,7 @@ func BenchmarkSearch(b *testing.B) {
 	}
 }
 func BenchmarkGoogleSearch(b *testing.B) {
-	tree := btree.New(256)
+	tree := btree.New(1024)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.ReplaceOrInsert(btree.Int(arr[n]))

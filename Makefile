@@ -8,5 +8,5 @@ bench-rbtree:
 test-btree:
 	cd btree && go test -v
 bench-btree:
-	cd btree && go test -bench=. -run=Bench -v
+	cd btree && go test -bench=. -run=Bench -v -benchtime=1000000x -benchmem
 
