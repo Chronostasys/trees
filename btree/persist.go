@@ -105,7 +105,10 @@ func LoadSnapshot(sn []byte, prefix string) *Tree {
 	buf := bytes.NewBuffer(sn)
 	dec := gob.NewDecoder(buf)
 	meta := &TreeMeta{}
-	dec.Decode(meta)
+	err := dec.Decode(meta)
+	if err != nil {
+		return nil
+	}
 	snapshot := map[int][]byte{}
 	dec.Decode(&snapshot)
 	for k, v := range snapshot {
