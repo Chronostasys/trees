@@ -112,14 +112,18 @@ func LoadSnapshot(sn []byte, prefix string) *Tree {
 	}
 	snapshot := map[int][]byte{}
 	dec.Decode(&snapshot)
+	wg := sync.WaitGroup{}
+	wg.Add(len(snapshot))
 	for k, v := range snapshot {
 		go func(k int, v []byte) {
 			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, k), os.O_CREATE|os.O_RDWR, 0644)
 			f.Write(v)
 			f.Sync()
 			f.Close()
+			wg.Done()
 		}(k, v)
 	}
+	wg.Wait()
 	return loadByMeta(meta, prefix)
 }
 
