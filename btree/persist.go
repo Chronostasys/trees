@@ -11,9 +11,9 @@ import (
 )
 
 type BinNode struct {
-	Childs []int
-	Father int
-	Right  int
+	Childs []int64
+	Father int64
+	Right  int64
 	Vals   []Hasher
 }
 
@@ -23,22 +23,22 @@ func init() {
 
 func (n *node) persist(t *Tree, prefix string) {
 	bin := BinNode{
-		Childs: make([]int, 0, t.m),
+		Childs: make([]int64, 0, t.m),
 		Vals:   make([]Hasher, 0, t.m-1),
 	}
 	for _, v := range n.childs {
-		bin.Childs = append(bin.Childs, v.fn)
+		bin.Childs = append(bin.Childs, int64(v.fn))
 	}
 	bin.Vals = n.vals
 	if n.father == nil {
 		bin.Father = -1
 	} else {
-		bin.Father = n.father.fn
+		bin.Father = int64(n.father.fn)
 	}
 	if n.right == nil {
 		bin.Right = -1
 	} else {
-		bin.Right = n.right.fn
+		bin.Right = int64(n.right.fn)
 	}
 	if n.f == nil {
 		f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, n.fn), os.O_CREATE|os.O_RDWR, 0644)
@@ -46,6 +46,7 @@ func (n *node) persist(t *Tree, prefix string) {
 	}
 	n.f.Truncate(0)
 	n.buf.Reset()
+	n.en = gob.NewEncoder(io.MultiWriter(n.f, n.buf))
 	n.en.Encode(bin)
 	if t.takeSnapshot {
 		t.snmu.Lock()
@@ -57,14 +58,14 @@ func (n *node) persist(t *Tree, prefix string) {
 func (n *node) initf(f *os.File) {
 	n.f = f
 	n.buf = &bytes.Buffer{}
-	n.en = gob.NewEncoder(io.MultiWriter(f, n.buf))
 }
 func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node, prefix string) *node {
 	n := &node{
 		vals:   make([]Hasher, 0, t.m),
 		childs: make([]*node, 0),
 	}
-	for _, v := range b.Childs {
+	for _, u := range b.Childs {
+		v := int(u)
 		if loaded[v] == nil {
 			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, v), os.O_RDWR, 0644)
 			reader := gob.NewDecoder(f)
@@ -82,7 +83,7 @@ func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node, prefix string)
 	if b.Right == -1 {
 		n.right = nil
 	} else {
-		v := b.Right
+		v := int(b.Right)
 		if loaded[v] == nil {
 			// panic("xxx")
 			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, v), os.O_RDWR, 0644)
@@ -173,9 +174,10 @@ func (t *Tree) Persist(prefix string) {
 	if t.f == nil {
 		t.f, _ = os.OpenFile(prefix+".meta", os.O_CREATE|os.O_RDWR, 0644)
 		t.buf = &bytes.Buffer{}
-		t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
+		// t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
 	}
 	t.buf.Reset()
+	t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
 	t.en.Encode(meta)
 	t.f.Sync()
 	wg.Wait()
