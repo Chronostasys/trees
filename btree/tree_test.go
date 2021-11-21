@@ -132,16 +132,30 @@ func BenchmarkGoogleSearch(b *testing.B) {
 
 func TestTree_BtreeSearch(t *testing.T) {
 	tree := Make(1024)
-	for i := 1000000; i >= 0; i -= 1 {
-		tree.Insert(myint(i))
+	arr := rand.Perm(1000000)
+	for i := 0; i < 1000000; i++ {
+		tree.Insert(myint(arr[i]))
 	}
-	val := tree.Search(500)
-	if val.(myint) != 500 {
-		t.Fatal("search get wrong value. Expect", 500, "got", val.(myint))
+	for _, v := range arr {
+		val := tree.Search(v)
+		if val.(myint) != myint(v) {
+			t.Fatal("search get wrong value. Expect", v, "got", val.(myint))
+		}
 	}
-	val = tree.Search(-1)
-	if val != nil {
-		t.Fatal("search get wrong value. Expect nil", "got", val.(myint))
+	for i := 0; i < 500000; i++ {
+		tree.Delete(arr[i])
+	}
+	for _, v := range arr[500000:] {
+		val := tree.Search(v)
+		if val.(myint) != myint(v) {
+			t.Fatal("search get wrong value. Expect", v, "got", val.(myint))
+		}
+	}
+	for _, v := range arr[:500000] {
+		val := tree.Search(v)
+		if val != nil {
+			t.Fatal("search get wrong value. Expect nil", "got", val.(myint))
+		}
 	}
 	// tree.Print(true)
 }

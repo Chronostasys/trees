@@ -242,7 +242,7 @@ func (n *node) delete(t *Tree, hash int) {
 						return
 					}
 					n.vals = append(n.vals, bro.vals[0])
-					copy(bro.vals[0:len(bro.vals)-1], bro.vals[1:])
+					copy(bro.vals[:len(bro.vals)-1], bro.vals[1:])
 					bro.vals = bro.vals[:len(bro.vals)-1]
 					father.vals[idx] = myint(bro.vals[0].Hash())
 					return
@@ -321,7 +321,7 @@ func (t *Tree) Search(hash int) Hasher {
 func (n *node) search(hash int) Hasher {
 	idx := n.biSearch(hash)
 	if len(n.childs) == 0 {
-		if idx-1 < 0 {
+		if idx-1 < 0 || n.vals[idx-1].Hash() != hash {
 			return nil
 		}
 		return n.vals[idx-1]
