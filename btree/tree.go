@@ -37,7 +37,7 @@ func Make(m int) *Tree {
 func makeBNode(m int) *node {
 	return &node{
 		vals:   make([]Hasher, 0, m),
-		childs: make([]*node, 0), // all leaves do not have childs. (m+1)
+		childs: make([]*node, 0), // all leaves do not have childs. So init it to zero minimize allocation. (if you meant to set it's len, set m+1)
 	}
 }
 
@@ -97,12 +97,14 @@ func (n *node) insert(t *Tree, val Hasher) {
 				copy(father.childs[idx+2:], father.childs[idx+1:])
 				father.childs[idx+1] = ri
 				if len(nchilds) != 0 { // 向上分裂
-					ri.vals = ri.vals[1:]
+					copy(ri.vals[:len(ri.vals)-1], ri.vals[1:])
+					ri.vals = ri.vals[:len(ri.vals)-1]
 				}
 				n = father
 				goto START
 			} else if len(nchilds) != 0 { // 向上分裂
-				ri.vals = ri.vals[1:]
+				copy(ri.vals[:len(ri.vals)-1], ri.vals[1:])
+				ri.vals = ri.vals[:len(ri.vals)-1]
 				t.root = makeBNode(t.m)
 				t.root.vals = append(t.root.vals, myint(nvals[t.m/2].Hash()))
 				t.root.childs = append(t.root.childs, lf, ri)
@@ -231,10 +233,12 @@ func (n *node) delete(t *Tree, hash int) {
 						// index nodes
 						n.vals = append(n.vals, father.vals[idx])
 						father.vals[idx] = myint(bro.vals[0].Hash())
-						bro.vals = bro.vals[1:]
+						copy(bro.vals[:len(bro.vals)-1], bro.vals[1:])
+						bro.vals = bro.vals[:len(bro.vals)-1]
 						n.childs = append(n.childs, bro.childs[0])
 						bro.childs[0].father = n
-						bro.childs = bro.childs[1:]
+						copy(bro.childs[:len(bro.childs)-1], bro.childs[1:])
+						bro.childs = bro.childs[:len(bro.childs)-1]
 						return
 					}
 					n.vals = append(n.vals, bro.vals[0])
