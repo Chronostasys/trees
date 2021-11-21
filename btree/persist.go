@@ -143,7 +143,10 @@ func Load(prefix string) *Tree {
 	meta := &TreeMeta{}
 	f, _ := os.OpenFile(prefix+".meta", os.O_CREATE|os.O_RDWR, 0644)
 	enc := gob.NewDecoder(f)
-	enc.Decode(meta)
+	err := enc.Decode(meta)
+	if err != nil {
+		return nil
+	}
 	return loadByMeta(meta, prefix)
 }
 func (t *Tree) Persist(prefix string) {
