@@ -47,7 +47,7 @@ func BenchmarkInsert(b *testing.B) {
 	}
 }
 func BenchmarkGoogleInsert(b *testing.B) {
-	tree := btree.New(1022)
+	tree := btree.New(1024)
 	arr := rand.Perm(b.N)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {

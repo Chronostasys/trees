@@ -15,6 +15,7 @@ type node struct {
 	childs []*node
 	father *node
 	vals   []Hasher
+	right  *node
 }
 
 type Hasher interface {
@@ -26,6 +27,7 @@ type Tree struct {
 	total int
 	m     int // 阶
 	edge  int
+	first *node
 }
 
 func Make(m int) *Tree {
@@ -35,7 +37,7 @@ func Make(m int) *Tree {
 func makeBNode(m int) *node {
 	return &node{
 		vals:   make([]Hasher, 0, m),
-		childs: make([]*node, 0),
+		childs: make([]*node, 0), // all leaves do not have childs
 	}
 }
 
@@ -43,6 +45,7 @@ func (t *Tree) Insert(val Hasher) {
 	if t.root == nil {
 		t.root = makeBNode(t.m)
 		t.root.vals = append(t.root.vals, val)
+		t.first = t.root
 		t.total++
 	} else {
 		t.root.insert(t, val)
@@ -68,23 +71,21 @@ func (n *node) insert(t *Tree, val Hasher) {
 		t.total++
 	START:
 		if len(n.vals) == t.m {
-			lf := makeBNode(t.m)
-			lf.vals = append(lf.vals, n.vals[:t.m/2]...)
-			lf.father = n
+			father := n.father
+			nvals := n.vals[:]
+			nchilds := n.childs[:]
+			lf := n
+			lf.vals = nvals[:t.m/2]
 			ri := makeBNode(t.m)
-			ri.vals = append(ri.vals, n.vals[t.m/2:]...)
-			ri.father = n
-			if len(n.childs) != 0 { // 向上分裂
-				lf.childs = append(lf.childs, n.childs[:t.m/2+1]...)
-				ri.childs = append(ri.childs, n.childs[t.m/2+1:]...)
-				lf.ensureReversePointer()
+			ri.vals = append(ri.vals, nvals[t.m/2:]...)
+			if len(nchilds) != 0 { // 向上分裂
+				lf.childs = nchilds[:t.m/2+1]
+				ri.childs = append(ri.childs, nchilds[t.m/2+1:]...)
 				ri.ensureReversePointer()
 			}
-			if n.father != nil {
-				father := n.father
-				lf.father = father
-				ri.father = n.father
-				idx := father.biSearch(n.vals[0].Hash())
+			if father != nil {
+				ri.father = father
+				idx := father.biSearch(nvals[0].Hash())
 				last := len(father.vals) - 1
 				father.vals = append(father.vals, father.vals[last])
 				ed := father.vals[idx:]
@@ -92,25 +93,28 @@ func (n *node) insert(t *Tree, val Hasher) {
 				father.vals[idx] = myint(ri.vals[0].Hash())
 				last = len(father.childs) - 1
 				father.childs = append(father.childs, father.childs[last])
-				// copy(childs[:idx], father.childs[:idx])
 				copy(father.childs[idx+2:], father.childs[idx+1:])
-				father.childs[idx] = lf
 				father.childs[idx+1] = ri
-				if len(n.childs) != 0 { // 向上分裂
+				if len(nchilds) != 0 { // 向上分裂
 					ri.vals = ri.vals[1:]
 				}
 				n = father
 				goto START
-			} else if len(n.childs) != 0 { // 向上分裂
+			} else if len(nchilds) != 0 { // 向上分裂
 				ri.vals = ri.vals[1:]
 				t.root = makeBNode(t.m)
-				t.root.vals = append(t.root.vals, myint(n.vals[t.m/2].Hash()))
+				t.root.vals = append(t.root.vals, myint(nvals[t.m/2].Hash()))
 				t.root.childs = append(t.root.childs, lf, ri)
 				lf.father = t.root
 				ri.father = t.root
 			} else {
-				n.vals = []Hasher{myint(ri.vals[0].Hash())}
+				n = makeBNode(t.m)
+				n.vals = append(n.vals[:0], myint(ri.vals[0].Hash()))
 				n.childs = append(n.childs, lf, ri)
+				t.root = n
+				lf.father = n
+				ri.father = n
+				t.first = lf
 			}
 		}
 		return
