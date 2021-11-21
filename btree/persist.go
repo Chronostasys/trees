@@ -45,6 +45,7 @@ func (n *node) persist(t *Tree, prefix string) {
 		n.initf(f)
 	}
 	n.f.Truncate(0)
+	n.f.Seek(0, 0)
 	n.buf.Reset()
 	n.en = gob.NewEncoder(io.MultiWriter(n.f, n.buf))
 	n.en.Encode(bin)
@@ -188,6 +189,8 @@ func (t *Tree) Persist(prefix string) {
 		t.buf = &bytes.Buffer{}
 		// t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
 	}
+	t.f.Truncate(0)
+	t.f.Seek(0, 0)
 	t.buf.Reset()
 	t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
 	t.en.Encode(meta)
