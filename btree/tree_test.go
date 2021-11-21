@@ -29,7 +29,7 @@ func TestTree_BtreeInsert(t *testing.T) {
 	}
 	sort.Ints(rands)
 	i := 0
-	tree.Travel(func(val Hasher, level int) {
+	tree.Iterate(func(val Hasher) {
 		if rands[i] != val.Hash() {
 			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
 		}
@@ -75,7 +75,7 @@ func TestTree_BtreeDelete(t *testing.T) {
 	rands = rands[50000:]
 	sort.Ints(rands)
 	i := 0
-	tree.Travel(func(val Hasher, level int) {
+	tree.Iterate(func(val Hasher) {
 		if rands[i] != val.Hash() {
 			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
 		}
@@ -131,8 +131,8 @@ func BenchmarkGoogleSearch(b *testing.B) {
 }
 
 func TestTree_BtreeSearch(t *testing.T) {
-	tree := Make(30)
-	for i := 1000; i >= 0; i -= 1 {
+	tree := Make(1024)
+	for i := 1000000; i >= 0; i -= 1 {
 		tree.Insert(myint(i))
 	}
 	val := tree.Search(500)

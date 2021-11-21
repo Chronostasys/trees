@@ -37,7 +37,7 @@ func Make(m int) *Tree {
 func makeBNode(m int) *node {
 	return &node{
 		vals:   make([]Hasher, 0, m),
-		childs: make([]*node, 0), // all leaves do not have childs
+		childs: make([]*node, 0), // all leaves do not have childs. (m+1)
 	}
 }
 
@@ -78,6 +78,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 			lf.vals = nvals[:t.m/2]
 			ri := makeBNode(t.m)
 			ri.vals = append(ri.vals, nvals[t.m/2:]...)
+			lf.right = ri
 			if len(nchilds) != 0 { // 向上分裂
 				lf.childs = nchilds[:t.m/2+1]
 				ri.childs = append(ri.childs, nchilds[t.m/2+1:]...)
@@ -132,21 +133,19 @@ func (n *node) ensureReversePointer() {
 		v.father = n
 	}
 }
-
-func (t *Tree) Travel(job func(val Hasher, level int)) {
+func (t *Tree) Iterate(job func(val Hasher)) {
 	if t.root == nil {
 		return
 	}
-	t.root.travel(job, 1)
-}
-func (n *node) travel(job func(val Hasher, level int), level int) {
-	for _, v := range n.childs {
-		v.travel(job, level+1)
-	}
-	if len(n.childs) == 0 {
-		for _, v := range n.vals {
-			job(v, level)
+	e := t.first
+	for {
+		if e == nil {
+			break
 		}
+		for _, v := range e.vals {
+			job(v)
+		}
+		e = e.right
 	}
 }
 
@@ -171,9 +170,6 @@ func (n *node) delete(t *Tree, hash int) {
 	// leaf node
 	if len(n.childs) == 0 {
 		index := n.biSearch(hash) - 1
-		if index == -1 {
-			println()
-		}
 		// exist
 		if index != len(n.vals) && n.vals[index].Hash() == hash {
 			first := n.vals[0].Hash()
@@ -242,7 +238,8 @@ func (n *node) delete(t *Tree, hash int) {
 						return
 					}
 					n.vals = append(n.vals, bro.vals[0])
-					bro.vals = bro.vals[1:]
+					copy(bro.vals[0:len(bro.vals)-1], bro.vals[1:])
+					bro.vals = bro.vals[:len(bro.vals)-1]
 					father.vals[idx] = myint(bro.vals[0].Hash())
 					return
 				}
@@ -263,6 +260,7 @@ func (n *node) delete(t *Tree, hash int) {
 					for _, v := range n.childs {
 						v.father = bro
 					}
+					bro.right = n.right
 				}
 				bro.vals = append(bro.vals, n.vals...)
 				father.vals = append(father.vals[:idx-1], father.vals[idx:]...)
@@ -283,6 +281,7 @@ func (n *node) delete(t *Tree, hash int) {
 					for _, v := range bro.childs {
 						v.father = n
 					}
+					n.right = bro.right
 				}
 				n.vals = append(n.vals, bro.vals...)
 				father.vals = append(father.vals[:idx], father.vals[idx+1:]...)
