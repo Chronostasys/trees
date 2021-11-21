@@ -124,10 +124,16 @@ func LoadSnapshot(sn []byte, prefix string) *Tree {
 }
 
 func loadByMeta(meta *TreeMeta, prefix string) *Tree {
-	f1, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, meta.Rootfn), os.O_RDWR, 0644)
+	f1, err := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, meta.Rootfn), os.O_RDWR, 0644)
+	if err != nil {
+		return nil
+	}
 	reader := gob.NewDecoder(f1)
 	bin := &BinNode{}
-	reader.Decode(&bin)
+	err = reader.Decode(&bin)
+	if err != nil {
+		return nil
+	}
 	t := &Tree{
 		m:        meta.M,
 		total:    meta.Total,
