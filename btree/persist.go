@@ -141,6 +141,7 @@ func loadByMeta(meta *TreeMeta, prefix string) *Tree {
 	loaded := map[int]*node{}
 	t.root = bin.loadNode(meta.Rootfn, t, loaded, prefix)
 	t.root.initf(f1)
+	loaded[t.root.fn] = t.root
 	t.first = loaded[meta.First]
 	return t
 }
