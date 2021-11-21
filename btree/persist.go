@@ -136,6 +136,7 @@ func loadByMeta(meta *TreeMeta, prefix string) *Tree {
 		fs:       map[*node]struct{}{},
 		snapshot: map[int][]byte{},
 		snmu:     &sync.Mutex{},
+		persist:  true,
 	}
 	loaded := map[int]*node{}
 	t.root = bin.loadNode(meta.Rootfn, t, loaded, prefix)
