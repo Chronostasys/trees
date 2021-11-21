@@ -264,15 +264,16 @@ func (n *node) delete(t *Tree, hash int) {
 					for _, v := range n.childs {
 						v.father = bro
 					}
-					bro.right = n.right
 				}
 				bro.vals = append(bro.vals, n.vals...)
 				father.vals = append(father.vals[:idx-1], father.vals[idx:]...)
 				father.childs = append(father.childs[:idx], father.childs[idx+1:]...)
+				bro.right = n.right
 				n = father
 				if t.root == n {
 					if len(n.childs) == 1 {
 						t.root = n.childs[0]
+						t.root.father = nil
 					}
 					return
 				}
@@ -290,10 +291,12 @@ func (n *node) delete(t *Tree, hash int) {
 				n.vals = append(n.vals, bro.vals...)
 				father.vals = append(father.vals[:idx], father.vals[idx+1:]...)
 				father.childs = append(father.childs[:idx+1], father.childs[idx+2:]...)
+				n.right = bro.right
 				n = father
 				if t.root == n {
 					if len(n.childs) == 1 {
 						t.root = n.childs[0]
+						t.root.father = nil
 					}
 					return
 				}
