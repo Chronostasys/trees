@@ -21,7 +21,7 @@ func init() {
 	gob.Register(Int(0))
 }
 
-func (n *node) persist(t *Tree) {
+func (n *node) persist(t *Tree, prefix string) {
 	bin := BinNode{
 		Childs: make([]int, 0, t.m),
 		Vals:   make([]Hasher, 0, t.m-1),
@@ -41,7 +41,7 @@ func (n *node) persist(t *Tree) {
 		bin.Right = n.right.fn
 	}
 	if n.f == nil {
-		f, _ := os.OpenFile(fmt.Sprintf("%d.idx", n.fn), os.O_CREATE|os.O_RDWR, 0644)
+		f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, n.fn), os.O_CREATE|os.O_RDWR, 0644)
 		n.initf(f)
 	}
 	n.f.Truncate(0)
@@ -59,18 +59,18 @@ func (n *node) initf(f *os.File) {
 	n.buf = &bytes.Buffer{}
 	n.en = gob.NewEncoder(io.MultiWriter(f, n.buf))
 }
-func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node) *node {
+func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node, prefix string) *node {
 	n := &node{
 		vals:   make([]Hasher, 0, t.m),
 		childs: make([]*node, 0),
 	}
 	for _, v := range b.Childs {
 		if loaded[v] == nil {
-			f, _ := os.OpenFile(fmt.Sprintf("%d.idx", v), os.O_RDWR, 0644)
+			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, v), os.O_RDWR, 0644)
 			reader := gob.NewDecoder(f)
 			bin := &BinNode{}
 			reader.Decode(&bin)
-			l := bin.loadNode(v, t, loaded)
+			l := bin.loadNode(v, t, loaded, prefix)
 			n.childs = append(n.childs, l)
 			loaded[v] = l
 			l.initf(f)
@@ -85,11 +85,11 @@ func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node) *node {
 		v := b.Right
 		if loaded[v] == nil {
 			// panic("xxx")
-			f, _ := os.OpenFile(fmt.Sprintf("%d.idx", v), os.O_RDWR, 0644)
+			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, v), os.O_RDWR, 0644)
 			reader := gob.NewDecoder(f)
 			bin := &BinNode{}
 			reader.Decode(&bin)
-			n.right = bin.loadNode(v, t, loaded)
+			n.right = bin.loadNode(v, t, loaded, prefix)
 			loaded[v] = n.right
 			n.right.initf(f)
 		} else {
@@ -101,7 +101,7 @@ func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node) *node {
 	return n
 }
 
-func LoadSnapshot(sn []byte) *Tree {
+func LoadSnapshot(sn []byte, prefix string) *Tree {
 	buf := bytes.NewBuffer(sn)
 	dec := gob.NewDecoder(buf)
 	meta := &TreeMeta{}
@@ -110,17 +110,17 @@ func LoadSnapshot(sn []byte) *Tree {
 	dec.Decode(&snapshot)
 	for k, v := range snapshot {
 		go func(k int, v []byte) {
-			f, _ := os.OpenFile(fmt.Sprintf("%d.idx", k), os.O_CREATE|os.O_RDWR, 0644)
+			f, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, k), os.O_CREATE|os.O_RDWR, 0644)
 			f.Write(v)
 			f.Sync()
 			f.Close()
 		}(k, v)
 	}
-	return loadByMeta(meta)
+	return loadByMeta(meta, prefix)
 }
 
-func loadByMeta(meta *TreeMeta) *Tree {
-	f1, _ := os.OpenFile(fmt.Sprintf("%d.idx", meta.Rootfn), os.O_RDWR, 0644)
+func loadByMeta(meta *TreeMeta, prefix string) *Tree {
+	f1, _ := os.OpenFile(fmt.Sprintf("%s%d.idx", prefix, meta.Rootfn), os.O_RDWR, 0644)
 	reader := gob.NewDecoder(f1)
 	bin := &BinNode{}
 	reader.Decode(&bin)
@@ -134,25 +134,25 @@ func loadByMeta(meta *TreeMeta) *Tree {
 		snmu:     &sync.Mutex{},
 	}
 	loaded := map[int]*node{}
-	t.root = bin.loadNode(meta.Rootfn, t, loaded)
+	t.root = bin.loadNode(meta.Rootfn, t, loaded, prefix)
 	t.root.initf(f1)
 	t.first = loaded[meta.First]
 	return t
 }
-func Load() *Tree {
+func Load(prefix string) *Tree {
 	meta := &TreeMeta{}
-	f, _ := os.OpenFile(".meta", os.O_CREATE|os.O_RDWR, 0644)
+	f, _ := os.OpenFile(prefix+".meta", os.O_CREATE|os.O_RDWR, 0644)
 	enc := gob.NewDecoder(f)
 	enc.Decode(meta)
-	return loadByMeta(meta)
+	return loadByMeta(meta, prefix)
 }
-func (t *Tree) Persist() {
+func (t *Tree) Persist(prefix string) {
 	wg := sync.WaitGroup{}
 	le := len(t.fs)
 	wg.Add(le)
 	for n := range t.fs {
 		go func(n *node) {
-			n.persist(t)
+			n.persist(t, prefix)
 			wg.Done()
 		}(n)
 		delete(t.fs, n)
@@ -165,7 +165,7 @@ func (t *Tree) Persist() {
 		First:  t.first.fn,
 	}
 	if t.f == nil {
-		t.f, _ = os.OpenFile(".meta", os.O_CREATE|os.O_RDWR, 0644)
+		t.f, _ = os.OpenFile(prefix+".meta", os.O_CREATE|os.O_RDWR, 0644)
 		t.buf = &bytes.Buffer{}
 		t.en = gob.NewEncoder(io.MultiWriter(t.f, t.buf))
 	}
@@ -174,9 +174,9 @@ func (t *Tree) Persist() {
 	t.f.Sync()
 	wg.Wait()
 }
-func (t *Tree) PersistWithSnapshot() []byte {
+func (t *Tree) PersistWithSnapshot(prefix string) []byte {
 	t.takeSnapshot = true
-	t.Persist()
+	t.Persist(prefix)
 	buf := &bytes.Buffer{}
 	buf.Write(t.buf.Bytes())
 	enc := gob.NewEncoder(buf)

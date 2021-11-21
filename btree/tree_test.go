@@ -177,14 +177,13 @@ func Test_Persist(t *testing.T) {
 	sort.Ints(rands)
 	i := 0
 	t1 := time.Now()
-	sn := tree.PersistWithSnapshot()
+	sn := tree.PersistWithSnapshot("test")
 	l := len(sn)
 	println(l)
 	println(time.Since(t1).String())
 	t1 = time.Now()
-	tree = LoadSnapshot(sn)
+	tree = LoadSnapshot(sn, "test")
 	println(time.Since(t1).String())
-	tree.Insert(Int(-1))
 	tree.Iterate(func(val Hasher) {
 		if rands[i] != val.Hash() {
 			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
