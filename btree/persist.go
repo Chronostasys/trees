@@ -167,6 +167,9 @@ func Load(prefix string) *Tree {
 	return loadByMeta(meta, prefix)
 }
 func (t *Tree) Persist(prefix string) {
+	if t.root == nil {
+		return
+	}
 	wg := sync.WaitGroup{}
 	le := len(t.fs)
 	wg.Add(le)

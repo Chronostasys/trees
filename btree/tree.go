@@ -441,3 +441,6 @@ func (n *node) search(hash int) Hasher {
 	}
 	return n.childs[idx].search(hash)
 }
+func (t *Tree) Len() int {
+	return t.total
+}
