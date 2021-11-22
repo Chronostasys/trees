@@ -14,7 +14,7 @@ func init() {
 }
 
 func TestTree_BtreeInsert(t *testing.T) {
-	tree := Make(1024)
+	tree := Make(256)
 	rands := []int{}
 	for i := 1000000; i >= 0; i -= 1 {
 		ran := i
@@ -39,7 +39,7 @@ func TestTree_BtreeInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	tree := Make(1024)
+	tree := Make(256)
 	arr := rand.Perm(b.N)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -47,7 +47,7 @@ func BenchmarkInsert(b *testing.B) {
 	}
 }
 func BenchmarkGoogleInsert(b *testing.B) {
-	tree := btree.New(1024)
+	tree := btree.New(256)
 	arr := rand.Perm(b.N)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -56,7 +56,7 @@ func BenchmarkGoogleInsert(b *testing.B) {
 }
 
 func TestTree_BtreeDelete(t *testing.T) {
-	tree := Make(1024)
+	tree := Make(256)
 	rands := []int{}
 	for i := 1000000; i >= 0; i -= 1 {
 		ran := i
@@ -85,7 +85,7 @@ func TestTree_BtreeDelete(t *testing.T) {
 }
 
 func BenchmarkDelete(b *testing.B) {
-	tree := Make(1024)
+	tree := Make(256)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(Int(arr[n]))
@@ -96,7 +96,7 @@ func BenchmarkDelete(b *testing.B) {
 	}
 }
 func BenchmarkGoogleDelete(b *testing.B) {
-	tree := btree.New(1024)
+	tree := btree.New(256)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.ReplaceOrInsert(btree.Int(arr[n]))
@@ -108,7 +108,7 @@ func BenchmarkGoogleDelete(b *testing.B) {
 }
 
 func BenchmarkSearch(b *testing.B) {
-	tree := Make(1024)
+	tree := Make(256)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.Insert(Int(arr[n]))
@@ -119,7 +119,7 @@ func BenchmarkSearch(b *testing.B) {
 	}
 }
 func BenchmarkGoogleSearch(b *testing.B) {
-	tree := btree.New(1024)
+	tree := btree.New(256)
 	arr := rand.Perm(b.N)
 	for n := 0; n < b.N; n++ {
 		tree.ReplaceOrInsert(btree.Int(arr[n]))
@@ -131,7 +131,7 @@ func BenchmarkGoogleSearch(b *testing.B) {
 }
 
 func TestTree_BtreeSearch(t *testing.T) {
-	tree := Make(1024)
+	tree := Make(256)
 	arr := rand.Perm(1000000)
 	for i := 0; i < 1000000; i++ {
 		tree.Insert(Int(arr[i]))
@@ -161,7 +161,7 @@ func TestTree_BtreeSearch(t *testing.T) {
 }
 
 func Test_Persist(t *testing.T) {
-	tree := MakePersist(1024)
+	tree := MakePersist(256)
 	rands := []int{}
 	for i := 100000; i >= 0; i -= 1 {
 		ran := i
