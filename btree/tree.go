@@ -355,6 +355,11 @@ func (n *node) delete(t *Tree, hash int) {
 					t.fs[bro] = struct{}{}
 					t.fs[father] = struct{}{}
 					delete(t.fs, n)
+					go func(n *node) {
+						name := n.f.Name()
+						n.f.Close()
+						os.Remove(name)
+					}(n)
 				}
 
 				n = father
@@ -388,6 +393,11 @@ func (n *node) delete(t *Tree, hash int) {
 					t.fs[n] = struct{}{}
 					t.fs[father] = struct{}{}
 					delete(t.fs, bro)
+					go func(n *node) {
+						name := n.f.Name()
+						n.f.Close()
+						os.Remove(name)
+					}(bro)
 				}
 				n = father
 				if t.root == n {
