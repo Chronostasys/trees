@@ -232,7 +232,7 @@ func (n *node) delete(t *Tree, hash int) {
 	if len(n.childs) == 0 {
 		index := n.biSearch(hash) - 1
 		// exist
-		if index != len(n.vals) && n.vals[index].Hash() == hash {
+		if index != -1 && n.vals[index].Hash() == hash {
 			first := n.vals[0].Hash()
 			if index == len(n.vals)-1 {
 				n.vals = n.vals[:index]
