@@ -177,12 +177,12 @@ func Test_Persist(t *testing.T) {
 	sort.Ints(rands)
 	i := 0
 	t1 := time.Now()
-	sn := tree.PersistWithSnapshot("test")
+	sn := tree.PersistWithSnapshot("test/t-")
 	l := len(sn)
 	println(l)
 	println(time.Since(t1).String())
 	t1 = time.Now()
-	tree = LoadSnapshot(sn, "test")
+	tree = LoadSnapshot(sn, "test/t-")
 	println(time.Since(t1).String())
 	tree.Iterate(func(val Hasher) {
 		if rands[i] != val.Hash() {

@@ -7,15 +7,9 @@ import (
 	"io"
 	"math"
 	"os"
+	"strings"
 	"sync"
 )
-
-type BinNode struct {
-	Childs []int64
-	Father int64
-	Right  int64
-	Vals   []Hasher
-}
 
 func init() {
 	gob.Register(Int(0))
@@ -167,6 +161,10 @@ func Load(prefix string) *Tree {
 	return loadByMeta(meta, prefix)
 }
 func (t *Tree) Persist(prefix string) {
+	if strings.Contains(prefix, "/") {
+		i := strings.LastIndex(prefix, "/")
+		os.MkdirAll(prefix[:i], os.ModePerm)
+	}
 	if t.root == nil {
 		return
 	}
