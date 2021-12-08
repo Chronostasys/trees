@@ -199,6 +199,9 @@ func (t *Tree) Persist(prefix string) {
 	wg.Wait()
 }
 func (t *Tree) PersistWithSnapshot(prefix string) []byte {
+	if t.root == nil {
+		return []byte{}
+	}
 	t.takeSnapshot = true
 	t.Persist(prefix)
 	buf := &bytes.Buffer{}
