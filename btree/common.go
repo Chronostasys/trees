@@ -9,6 +9,9 @@ import (
 
 type (
 	Int int
+	KV  struct {
+		K, V string
+	}
 
 	node struct {
 		childs []*node
@@ -63,4 +66,13 @@ func (i Int) Key() Item {
 }
 func (i Int) Int() int {
 	return int(i)
+}
+func (i KV) Less(than Item) bool {
+	return i.K < than.(KV).K
+}
+func (i KV) EQ(than Item) bool {
+	return i.K == than.(KV).K
+}
+func (i KV) Key() Item {
+	return KV{K: i.K}
 }
