@@ -18,7 +18,7 @@ func init() {
 func (n *node) persist(t *Tree, prefix string) {
 	bin := BinNode{
 		Childs: make([]int64, 0, t.m),
-		Vals:   make([]Hasher, 0, t.m-1),
+		Vals:   make([]Item, 0, t.m-1),
 	}
 	for _, v := range n.childs {
 		bin.Childs = append(bin.Childs, int64(v.fn))
@@ -56,7 +56,7 @@ func (n *node) initf(f *os.File) {
 }
 func (b *BinNode) loadNode(fn int, t *Tree, loaded map[int]*node, prefix string) *node {
 	n := &node{
-		vals:   make([]Hasher, 0, t.m),
+		vals:   make([]Item, 0, t.m),
 		childs: make([]*node, 0),
 	}
 	for _, u := range b.Childs {

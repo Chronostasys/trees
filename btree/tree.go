@@ -30,13 +30,13 @@ func (t *Tree) makeBNode() *node {
 		t.gfn++
 	}()
 	return &node{
-		vals:   make([]Hasher, 0, m),
+		vals:   make([]Item, 0, m),
 		childs: make([]*node, 0), // all leaves do not have childs. So init it to zero minimize allocation. (if you meant to set it's len, set m+1)
 		fn:     t.gfn,
 	}
 }
 
-func (t *Tree) Insert(val Hasher) {
+func (t *Tree) Insert(val Item) {
 	if t.root == nil {
 		t.root = t.makeBNode()
 		t.root.vals = append(t.root.vals, val)
@@ -47,11 +47,15 @@ func (t *Tree) Insert(val Hasher) {
 	}
 }
 
-func (n *node) insert(t *Tree, val Hasher) {
+func itemEQ(i1, i2 Item) bool {
+	return i1.EQ(i2)
+}
+
+func (n *node) insert(t *Tree, val Item) {
 	if len(n.childs) == 0 {
-		index := n.biSearch(val.Hash())
+		index := n.biSearch(val)
 		// update situation
-		if index-1 > -1 && n.vals[index-1].Hash() == val.Hash() {
+		if index-1 > -1 && itemEQ(n.vals[index-1], val) {
 			n.vals[index-1] = val
 			if t.persist {
 				t.fs[n] = struct{}{}
@@ -87,12 +91,12 @@ func (n *node) insert(t *Tree, val Hasher) {
 			}
 			if father != nil {
 				ri.father = father
-				idx := father.biSearch(nvals[0].Hash())
+				idx := father.biSearch(nvals[0])
 				last := len(father.vals) - 1
 				father.vals = append(father.vals, father.vals[last])
 				ed := father.vals[idx:]
 				copy(father.vals[idx+1:], ed)
-				father.vals[idx] = Int(ri.vals[0].Hash())
+				father.vals[idx] = ri.vals[0].Key()
 				last = len(father.childs) - 1
 				father.childs = append(father.childs, father.childs[last])
 				copy(father.childs[idx+2:], father.childs[idx+1:])
@@ -112,7 +116,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 				copy(ri.vals[:len(ri.vals)-1], ri.vals[1:])
 				ri.vals = ri.vals[:len(ri.vals)-1]
 				t.root = t.makeBNode()
-				t.root.vals = append(t.root.vals, Int(nvals[t.m/2].Hash()))
+				t.root.vals = append(t.root.vals, nvals[t.m/2].Key())
 				t.root.childs = append(t.root.childs, lf, ri)
 				lf.father = t.root
 				ri.father = t.root
@@ -123,7 +127,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 				}
 			} else {
 				n = t.makeBNode()
-				n.vals = append(n.vals[:0], Int(ri.vals[0].Hash()))
+				n.vals = append(n.vals[:0], ri.vals[0].Key())
 				n.childs = append(n.childs, lf, ri)
 				t.root = n
 				lf.father = n
@@ -139,7 +143,7 @@ func (n *node) insert(t *Tree, val Hasher) {
 		}
 		return
 	}
-	idx := n.biSearch(val.Hash())
+	idx := n.biSearch(val)
 	if len(n.childs) <= idx {
 		no := t.makeBNode()
 		no.father = n
@@ -152,7 +156,7 @@ func (n *node) ensureReversePointer() {
 		v.father = n
 	}
 }
-func (t *Tree) Iterate(job func(val Hasher)) {
+func (t *Tree) Iterate(job func(val Item)) {
 	if t.root == nil {
 		return
 	}
@@ -169,29 +173,29 @@ func (t *Tree) Iterate(job func(val Hasher)) {
 }
 
 // binary search.
-func (n *node) biSearch(hash int) int {
+func (n *node) biSearch(item Item) int {
 	if n == nil || n.vals == nil {
 		return -1
 	}
 	return sort.Search(len(n.vals), func(i int) bool {
-		return n.vals[i].Hash() > hash
+		return item.Less(n.vals[i])
 	})
 }
 
-func (t *Tree) Delete(hash int) {
+func (t *Tree) Delete(item Item) {
 	if t.root == nil {
 		return
 	}
-	t.root.delete(t, hash)
+	t.root.delete(t, item)
 }
 
-func (n *node) delete(t *Tree, hash int) {
+func (n *node) delete(t *Tree, item Item) {
 	// leaf node
 	if len(n.childs) == 0 {
-		index := n.biSearch(hash) - 1
+		index := n.biSearch(item) - 1
 		// exist
-		if index != -1 && n.vals[index].Hash() == hash {
-			first := n.vals[0].Hash()
+		if index != -1 && itemEQ(n.vals[index], item) {
+			first := n.vals[0]
 			if index == len(n.vals)-1 {
 				n.vals = n.vals[:index]
 			} else {
@@ -223,10 +227,10 @@ func (n *node) delete(t *Tree, hash int) {
 					last := len(bro.vals) - 1
 					if len(n.childs) > 0 {
 						// index nodes
-						n.vals = append(n.vals, Int(0))
+						n.vals = append(n.vals, nil)
 						copy(n.vals[1:], n.vals[:len(n.vals)-1])
 						n.vals[0] = father.vals[idx-1]
-						father.vals[idx-1] = Int(bro.vals[last].Hash())
+						father.vals[idx-1] = bro.vals[last].Key()
 						bro.vals = bro.vals[:last]
 						n.childs = append(n.childs, nil)
 						copy(n.childs[1:], n.childs[:len(n.childs)])
@@ -240,9 +244,9 @@ func (n *node) delete(t *Tree, hash int) {
 						}
 						return
 					}
-					father.vals[idx-1] = Int(bro.vals[last].Hash())
+					father.vals[idx-1] = bro.vals[last].Key()
 					lenn := len(n.vals)
-					n.vals = append(n.vals, Int(0))
+					n.vals = append(n.vals, nil)
 					copy(n.vals[1:], n.vals[:lenn])
 					n.vals[0] = bro.vals[last]
 					bro.vals = bro.vals[:last]
@@ -262,7 +266,7 @@ func (n *node) delete(t *Tree, hash int) {
 					if len(n.childs) > 0 {
 						// index nodes
 						n.vals = append(n.vals, father.vals[idx])
-						father.vals[idx] = Int(bro.vals[0].Hash())
+						father.vals[idx] = bro.vals[0].Key()
 						copy(bro.vals[:len(bro.vals)-1], bro.vals[1:])
 						bro.vals = bro.vals[:len(bro.vals)-1]
 						n.childs = append(n.childs, bro.childs[0])
@@ -279,7 +283,7 @@ func (n *node) delete(t *Tree, hash int) {
 					n.vals = append(n.vals, bro.vals[0])
 					copy(bro.vals[:len(bro.vals)-1], bro.vals[1:])
 					bro.vals = bro.vals[:len(bro.vals)-1]
-					father.vals[idx] = Int(bro.vals[0].Hash())
+					father.vals[idx] = bro.vals[0].Key()
 					if t.persist {
 						t.fs[n] = struct{}{}
 						t.fs[bro] = struct{}{}
@@ -374,30 +378,30 @@ func (n *node) delete(t *Tree, hash int) {
 		return
 	}
 	// index node
-	idx := n.biSearch(hash)
+	idx := n.biSearch(item)
 	if len(n.childs) <= idx {
 		// not exist
 		return
 	}
-	n.childs[idx].delete(t, hash)
+	n.childs[idx].delete(t, item)
 
 }
 
-func (t *Tree) Search(hash int) Hasher {
+func (t *Tree) Search(item Item) Item {
 	if t.root == nil {
 		return nil
 	}
-	return t.root.search(hash)
+	return t.root.search(item)
 }
-func (n *node) search(hash int) Hasher {
-	idx := n.biSearch(hash)
+func (n *node) search(item Item) Item {
+	idx := n.biSearch(item)
 	if len(n.childs) == 0 {
-		if idx-1 < 0 || n.vals[idx-1].Hash() != hash {
+		if idx-1 < 0 || !itemEQ(n.vals[idx-1], item) {
 			return nil
 		}
 		return n.vals[idx-1]
 	}
-	return n.childs[idx].search(hash)
+	return n.childs[idx].search(item)
 }
 func (t *Tree) Len() int {
 	return t.total

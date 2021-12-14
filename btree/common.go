@@ -13,7 +13,7 @@ type (
 	node struct {
 		childs []*node
 		father *node
-		vals   []Hasher
+		vals   []Item
 		right  *node
 		fn     int
 		f      *os.File
@@ -21,8 +21,10 @@ type (
 		buf    *bytes.Buffer
 	}
 
-	Hasher interface {
-		Hash() int
+	Item interface {
+		Less(than Item) bool
+		Key() Item
+		EQ(b Item) bool
 	}
 
 	Tree struct {
@@ -46,10 +48,19 @@ type (
 		Childs []int64
 		Father int64
 		Right  int64
-		Vals   []Hasher
+		Vals   []Item
 	}
 )
 
-func (i Int) Hash() int {
+func (i Int) Less(than Item) bool {
+	return i < than.(Int)
+}
+func (i Int) EQ(than Item) bool {
+	return i == than.(Int)
+}
+func (i Int) Key() Item {
+	return i
+}
+func (i Int) Int() int {
 	return int(i)
 }

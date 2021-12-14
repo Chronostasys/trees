@@ -29,9 +29,9 @@ func TestTree_BtreeInsert(t *testing.T) {
 	}
 	sort.Ints(rands)
 	i := 0
-	tree.Iterate(func(val Hasher) {
-		if rands[i] != val.Hash() {
-			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
+	tree.Iterate(func(val Item) {
+		if rands[i] != val.(Int).Int() {
+			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.(Int).Int())
 		}
 		i++
 	})
@@ -70,14 +70,14 @@ func TestTree_BtreeDelete(t *testing.T) {
 		rands[i], rands[j] = rands[j], rands[i]
 	})
 	for i := 0; i < 500000; i++ {
-		tree.Delete(rands[i])
+		tree.Delete(Int(rands[i]))
 	}
 	rands = rands[500000:]
 	sort.Ints(rands)
 	i := 0
-	tree.Iterate(func(val Hasher) {
-		if rands[i] != val.Hash() {
-			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
+	tree.Iterate(func(val Item) {
+		if rands[i] != val.(Int).Int() {
+			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.(Int).Int())
 		}
 		i++
 	})
@@ -92,7 +92,7 @@ func BenchmarkDelete(b *testing.B) {
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		tree.Delete(arr[n])
+		tree.Delete(Int(arr[n]))
 	}
 }
 func BenchmarkGoogleDelete(b *testing.B) {
@@ -115,7 +115,7 @@ func BenchmarkSearch(b *testing.B) {
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		tree.Search(arr[n])
+		tree.Search(Int(arr[n]))
 	}
 }
 func BenchmarkGoogleSearch(b *testing.B) {
@@ -137,22 +137,22 @@ func TestTree_BtreeSearch(t *testing.T) {
 		tree.Insert(Int(arr[i]))
 	}
 	for _, v := range arr {
-		val := tree.Search(v)
+		val := tree.Search(Int(v))
 		if val.(Int) != Int(v) {
 			t.Fatal("search get wrong value. Expect", v, "got", val.(Int))
 		}
 	}
 	for i := 0; i < 500000; i++ {
-		tree.Delete(arr[i])
+		tree.Delete(Int(arr[i]))
 	}
 	for _, v := range arr[500000:] {
-		val := tree.Search(v)
+		val := tree.Search(Int(v))
 		if val.(Int) != Int(v) {
 			t.Fatal("search get wrong value. Expect", v, "got", val.(Int))
 		}
 	}
 	for _, v := range arr[:500000] {
-		val := tree.Search(v)
+		val := tree.Search(Int(v))
 		if val != nil {
 			t.Fatal("search get wrong value. Expect nil", "got", val.(Int))
 		}
@@ -184,9 +184,9 @@ func Test_Persist(t *testing.T) {
 	t1 = time.Now()
 	tree = LoadSnapshot(sn, "test/t-")
 	println(time.Since(t1).String())
-	tree.Iterate(func(val Hasher) {
-		if rands[i] != val.Hash() {
-			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.Hash())
+	tree.Iterate(func(val Item) {
+		if rands[i] != val.(Int).Int() {
+			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.(Int).Int())
 		}
 		i++
 	})
