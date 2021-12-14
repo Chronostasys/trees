@@ -35,6 +35,9 @@ func TestTree_BtreeInsert(t *testing.T) {
 		}
 		i++
 	})
+	if i != len(rands) {
+		t.Fatalf("only travel %d items, expected %d items", i, len(rands))
+	}
 	// tree.Print(true)
 }
 
@@ -176,18 +179,50 @@ func Test_Persist(t *testing.T) {
 	}
 	sort.Ints(rands)
 	i := 0
-	t1 := time.Now()
 	sn := tree.PersistWithSnapshot("test/t-")
 	l := len(sn)
 	println(l)
-	println(time.Since(t1).String())
-	t1 = time.Now()
 	tree = LoadSnapshot(sn, "test/t-")
-	println(time.Since(t1).String())
 	tree.Iterate(func(val Item) {
 		if rands[i] != val.(Int).Int() {
 			t.Fatalf("wrong travel sequence. expect %d in pos %d, got %d", rands[i], i, val.(Int).Int())
 		}
 		i++
 	})
+}
+
+func TestTree_LargerOrEq(t *testing.T) {
+	tree := Make(256)
+	rands := []int{}
+	for i := 100000; i >= 0; i -= 1 {
+		ran := i
+		rands = append(rands, ran)
+	}
+	rand.Seed(time.Now().UnixMilli())
+	rand.Shuffle(len(rands), func(i, j int) {
+		rands[i], rands[j] = rands[j], rands[i]
+	})
+	for _, v := range rands {
+		tree.Insert(Int(v))
+	}
+	n := 1000
+	tree.LargerOrEq(Int(n), 2000, func(i Item) {
+		if n != i.(Int).Int() {
+			t.Fatalf("expect %d, got %d", n, i.(Int).Int())
+		}
+		n++
+	})
+	if n != 3000 {
+		t.Fatalf("expect n=3000 after test, got n=%d", n)
+	}
+	n = 999
+	tree.Larger(Int(n), 2000, func(i Item) {
+		if n+1 != i.(Int).Int() {
+			t.Fatalf("expect %d, got %d", n+1, i.(Int).Int())
+		}
+		n++
+	})
+	if n != 3000-1 {
+		t.Fatalf("expect n=3000 after test, got n=%d", n)
+	}
 }

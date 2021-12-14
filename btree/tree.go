@@ -83,11 +83,13 @@ func (n *node) insert(t *Tree, val Item) {
 			lf.vals = nvals[:t.m/2]
 			ri := t.makeBNode()
 			ri.vals = append(ri.vals, nvals[t.m/2:]...)
-			lf.right = ri
 			if len(nchilds) != 0 { // 向上分裂
 				lf.childs = nchilds[:t.m/2+1]
 				ri.childs = append(ri.childs, nchilds[t.m/2+1:]...)
 				ri.ensureReversePointer()
+			} else {
+				ri.right = n.right
+				lf.right = ri
 			}
 			if father != nil {
 				ri.father = father
@@ -405,4 +407,58 @@ func (n *node) search(item Item) Item {
 }
 func (t *Tree) Len() int {
 	return t.total
+}
+
+func (t *Tree) Larger(item Item, max int, callback func(Item)) {
+	if t.root == nil {
+		return
+	}
+	t.root.largerOrEq(item, max, callback, false)
+}
+func (n *node) largerOrEq(item Item, max int, callback func(Item), eq bool) {
+	idx := n.biSearch(item)
+	if len(n.childs) == 0 {
+		start := idx - 1
+		if !eq && n.vals[idx-1].EQ(item) {
+			start = idx
+			max = max + 1
+		}
+		ri := idx - 1 + max
+		if idx-1+max > len(n.vals) {
+			if start != len(n.vals) {
+				for _, v := range n.vals[start:] {
+					callback(v)
+				}
+			}
+			nx := ri
+			for {
+				nx = nx - len(n.vals)
+				if n.right == nil {
+					println()
+				}
+				n = n.right
+				if n == nil || nx <= 0 {
+					return
+				}
+				for i, v := range n.vals {
+					if i < nx {
+						callback(v)
+					}
+				}
+			}
+		} else {
+			for _, v := range n.vals[idx-1 : ri] {
+				callback(v)
+
+			}
+			return
+		}
+	}
+	n.childs[idx].largerOrEq(item, max, callback, eq)
+}
+func (t *Tree) LargerOrEq(item Item, max int, callback func(Item)) {
+	if t.root == nil {
+		return
+	}
+	t.root.largerOrEq(item, max, callback, true)
 }
