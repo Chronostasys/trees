@@ -31,3 +31,9 @@ func (t *kvbtree) Larger(than string, max int, callback func(k, v string) bool) 
 		return callback(kv.K, kv.V)
 	})
 }
+func (t *kvbtree) LargerOrEq(than string, max int, callback func(k, v string) bool) {
+	t.Tree.LargerOrEq(btree.KV{K: than}, max, func(i btree.Item) bool {
+		kv := i.(btree.KV)
+		return callback(kv.K, kv.V)
+	})
+}

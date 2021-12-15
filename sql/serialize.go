@@ -14,8 +14,10 @@ var (
 type seriMeta struct {
 	fieldsN  int
 	idx2Name map[int]fieldMeta
-	getpk    func(val reflect.Value) string
+	name2Idx map[string]int
+	getpk    func(val interface{}) string
 	name     string
+	idx      map[string]int
 }
 type fieldMeta struct {
 	name string
@@ -33,53 +35,87 @@ func ftb(i float64) []byte {
 	return bs[:]
 }
 
+func getFieldStr(v reflect.Value, idx int) string {
+	val := v.Field(idx)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return string(itb(val.Int()))
+	case reflect.String:
+		return val.String()
+	case reflect.Float32, reflect.Float64:
+		return string(ftb(val.Float()))
+	}
+	return ""
+}
 func Register(i interface{}) {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	idxmap := map[int]fieldMeta{}
 	tp := v.Type()
 	pkidx := -1
 	pkkind := reflect.Kind(0)
+	idx := map[string]int{}
+	name2Idx := map[string]int{}
 	for i := 0; i < v.NumField(); i++ {
 		idxmap[i] = fieldMeta{name: tp.Field(i).Name, kind: v.Field(i).Kind()}
 		if tp.Field(i).Tag.Get("sql") == "pk" {
 			pkidx = i
 			pkkind = v.Field(i).Kind()
 		}
+		if len(tp.Field(i).Tag.Get("idx")) > 0 {
+			idx[tp.Field(i).Name] = i
+		}
+		name2Idx[tp.Field(i).Name] = i
 	}
 	meta := seriMeta{
 		fieldsN:  v.NumField(),
 		idx2Name: idxmap,
-		getpk: func(v reflect.Value) string {
+		getpk: func(i interface{}) string {
+			v := reflect.Indirect(reflect.ValueOf(i))
 			val := v.Field(pkidx)
 			switch pkkind {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				return string(itb(val.Int()))
 			case reflect.String:
 				return val.String()
+			case reflect.Float32, reflect.Float64:
+				return string(ftb(val.Float()))
 			}
+
 			return ""
 		},
-		name: tp.Name(),
+		name:     tp.Name(),
+		idx:      idx,
+		name2Idx: name2Idx,
 	}
 	metaMap[v.Type().String()] = meta
 }
 
-func serialize(i interface{}) []byte {
+func serialize(i interface{}, fmap map[int]func(s string)) []byte {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	meta := metaMap[v.Type().String()]
 	fieldsN := meta.fieldsN
 	enc := []byte{}
 	for i := 0; i < fieldsN; i++ {
 		val := v.Field(i)
+		var bs []byte
 		switch meta.idx2Name[i].kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			enc = append(enc, itb(val.Int())...)
+			bs = itb(val.Int())
 		case reflect.String:
 			s := val.String()
 			enc = append(enc, itb(int64(len(s)))...)
-			enc = append(enc, []byte(s)...)
+			bs = []byte(s)
 		case reflect.Float32, reflect.Float64:
-			enc = append(enc, ftb(val.Float())...)
+			bs = ftb(val.Float())
+		default:
+			continue
+		}
+		enc = append(enc, bs...)
+		if fmap != nil {
+			if f, ok := fmap[i]; ok {
+				f(string(bs))
+			}
+
 		}
 
 	}
@@ -87,8 +123,9 @@ func serialize(i interface{}) []byte {
 }
 
 var errDeserialize = fmt.Errorf("deserialize error")
+var emptyMap = map[int]struct{}{}
 
-func deserialize(ser []byte, i interface{}, fields ...string) error {
+func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields ...string) (succ bool, err error) {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	meta := metaMap[v.Type().String()]
 	fieldsN := meta.fieldsN
@@ -111,36 +148,63 @@ func deserialize(ser []byte, i interface{}, fields ...string) error {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if set {
 				if idx+8 > le {
-					return errDeserialize
+					return false, errDeserialize
 				}
-				val.SetInt(int64(binary.LittleEndian.Uint64(ser[idx : idx+8])))
+				s := int64(binary.LittleEndian.Uint64(ser[idx : idx+8]))
+				if _, ok := eqfields[i]; ok {
+					if val.Int() != s {
+						return false, nil
+					}
+				} else {
+					val.SetInt(s)
+				}
 			}
 
 			idx += 8
 		case reflect.String:
 			if idx+8 > le {
-				return errDeserialize
+				return false, errDeserialize
 			}
 			l := int(binary.LittleEndian.Uint64(ser[idx : idx+8]))
 			idx += 8
 			if set {
 				if idx+l > le {
-					return errDeserialize
+					return false, errDeserialize
 				}
-				val.SetString(string(ser[idx : idx+l]))
+				s := string(ser[idx : idx+l])
+				if _, ok := eqfields[i]; ok {
+					if val.String() != s {
+						return false, nil
+					}
+				} else {
+					val.SetString(s)
+				}
+
 			}
 
 			idx += l
 		case reflect.Float32, reflect.Float64:
 			if set {
 				if idx+8 > le {
-					return errDeserialize
+					return false, errDeserialize
 				}
-				val.SetFloat(math.Float64frombits(binary.LittleEndian.Uint64(ser[idx : idx+8])))
+				s := math.Float64frombits(binary.LittleEndian.Uint64(ser[idx : idx+8]))
+				if _, ok := eqfields[i]; ok {
+					if val.Float() != s {
+						return false, nil
+					}
+				} else {
+					val.SetFloat(s)
+				}
 			}
 			idx += 8
 		}
 
 	}
-	return nil
+	return true, nil
+}
+
+func deserialize(ser []byte, i interface{}, fields ...string) error {
+	_, err := deserializeEQ(ser, i, emptyMap, fields...)
+	return err
 }

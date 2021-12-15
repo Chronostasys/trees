@@ -6,15 +6,15 @@ import (
 )
 
 type Test struct {
-	TestInt    int `sql:"pk"`
-	TestString string
+	TestInt    int    `sql:"pk"`
+	TestString string `idx:"-"`
 	TestFloat  float32
 }
 
 func Test_serialize(t *testing.T) {
 	Register(&Test{})
 	s := &Test{TestInt: 9, TestString: "dafdsf", TestFloat: 1.1}
-	bs := serialize(s)
+	bs := serialize(s, nil)
 	test := &Test{}
 	t.Run("Test deserialize", func(t *testing.T) {
 		deserialize(bs, test)
@@ -31,7 +31,7 @@ func Test_serialize(t *testing.T) {
 		}
 	})
 	t.Run("Test getpk", func(t *testing.T) {
-		pk := metaMap[reflect.TypeOf(*s).String()].getpk(reflect.Indirect(reflect.ValueOf(s)))
+		pk := metaMap[reflect.TypeOf(*s).String()].getpk(s)
 		if pk != string(itb(int64(s.TestInt))) {
 			t.Errorf("expect pk=%v, got %v", itb(int64(s.TestInt)), []byte(pk))
 		}
@@ -42,10 +42,10 @@ func BenchmarkSerialize(b *testing.B) {
 	s := &Test{TestInt: 9, TestString: "dafdsf", TestFloat: 1.1}
 	b.Run("BenchmarkSerialize", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			serialize(s)
+			serialize(s, nil)
 		}
 	})
-	bs := serialize(s)
+	bs := serialize(s, nil)
 	test := &Test{}
 	b.Run("BenchmarkDeserialize", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {

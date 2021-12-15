@@ -418,13 +418,9 @@ func (t *Tree) Larger(item Item, max int, callback func(Item) bool) {
 func (n *node) largerOrEq(item Item, max int, callback func(Item) bool, eq bool) {
 	idx := n.biSearch(item)
 	if len(n.childs) == 0 {
-		start := idx - 1
-		if !eq && start >= 0 && n.vals[start].EQ(item) {
-			start = idx
-			max = max + 1
-		}
-		if start < 0 {
-			start = idx
+		start := idx
+		if eq && start-1 >= 0 && n.vals[start-1].EQ(item) {
+			start = idx - 1
 		}
 		ri := start + max
 		if ri > len(n.vals) {

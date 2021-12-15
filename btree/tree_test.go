@@ -180,8 +180,6 @@ func Test_Persist(t *testing.T) {
 	sort.Ints(rands)
 	i := 0
 	sn := tree.PersistWithSnapshot("test/t-")
-	l := len(sn)
-	println(l)
 	tree = LoadSnapshot(sn, "test/t-")
 	tree.Iterate(func(val Item) {
 		if rands[i] != val.(Int).Int() {
@@ -214,7 +212,7 @@ func TestTree_LargerOrEq(t *testing.T) {
 		return true
 	})
 	if n != 3000 {
-		t.Fatalf("expect n=3000 after test, got n=%d", n)
+		t.Errorf("expect n=3000 after test, got n=%d", n)
 	}
 	n = 999
 	tree.Larger(Int(n), 2000, func(i Item) bool {
@@ -225,6 +223,6 @@ func TestTree_LargerOrEq(t *testing.T) {
 		return true
 	})
 	if n != 3000-1 {
-		t.Fatalf("expect n=3000 after test, got n=%d", n)
+		t.Fatalf("expect n=2999 after test, got n=%d", n)
 	}
 }
