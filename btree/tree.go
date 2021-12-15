@@ -409,54 +409,59 @@ func (t *Tree) Len() int {
 	return t.total
 }
 
-func (t *Tree) Larger(item Item, max int, callback func(Item)) {
+func (t *Tree) Larger(item Item, max int, callback func(Item) bool) {
 	if t.root == nil {
 		return
 	}
 	t.root.largerOrEq(item, max, callback, false)
 }
-func (n *node) largerOrEq(item Item, max int, callback func(Item), eq bool) {
+func (n *node) largerOrEq(item Item, max int, callback func(Item) bool, eq bool) {
 	idx := n.biSearch(item)
 	if len(n.childs) == 0 {
 		start := idx - 1
-		if !eq && n.vals[idx-1].EQ(item) {
+		if !eq && start >= 0 && n.vals[start].EQ(item) {
 			start = idx
 			max = max + 1
 		}
-		ri := idx - 1 + max
-		if idx-1+max > len(n.vals) {
+		if start < 0 {
+			start = idx
+		}
+		ri := start + max
+		if ri > len(n.vals) {
 			if start != len(n.vals) {
 				for _, v := range n.vals[start:] {
-					callback(v)
+					if !callback(v) {
+						return
+					}
 				}
 			}
 			nx := ri
 			for {
 				nx = nx - len(n.vals)
-				if n.right == nil {
-					println()
-				}
 				n = n.right
 				if n == nil || nx <= 0 {
 					return
 				}
 				for i, v := range n.vals {
 					if i < nx {
-						callback(v)
+						if !callback(v) {
+							return
+						}
 					}
 				}
 			}
 		} else {
-			for _, v := range n.vals[idx-1 : ri] {
-				callback(v)
-
+			for _, v := range n.vals[start:ri] {
+				if !callback(v) {
+					return
+				}
 			}
 			return
 		}
 	}
 	n.childs[idx].largerOrEq(item, max, callback, eq)
 }
-func (t *Tree) LargerOrEq(item Item, max int, callback func(Item)) {
+func (t *Tree) LargerOrEq(item Item, max int, callback func(Item) bool) {
 	if t.root == nil {
 		return
 	}
