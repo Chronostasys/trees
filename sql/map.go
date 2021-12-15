@@ -9,9 +9,10 @@ import (
 
 const (
 	tablePrefix       = "t_"
-	rowTemplatePrefix = "i_%3d_r"
+	rowTemplatePrefix = "i_%3d_r"   //主键一定不是空，没必要把_r去了
 	rowTemplate       = "i_%3d_r%s" //i_{tableid}_r{rowpk}
 	tNumKey           = "tnum"
+	idxTemplatePrefix = "i_%3d_i%s_v-%s"
 	idxTemplate       = "i_%3d_i%s_v-%s_p%s" //i_{tableid}_i{idx}_v{val}_p{pk}
 	uniqueIdxTemplate = "i_%3d_i%s_v-%s"     //i_{tableid}_i{idx}_v{val}
 	idxNumKey         = "inum"
@@ -93,10 +94,10 @@ func Table(t interface{}) (*TableQuerier, error) {
 func (q *TableQuerier) Insert(i interface{}) {
 	meta := q.meta
 	k := fmt.Sprintf(rowTemplate, q.tid, meta.getpk(i))
-	fmap := map[int]func(s string){}
+	fmap := make(map[int]func(s string), len(meta.idx))
 	for _, v := range meta.idx {
 		fmap[v] = func(s string) {
-			tree.Insert(fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(v))), s, k), k)
+			tree.Insert(fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(v))), s, k), "")
 		}
 	}
 	tree.Insert(k, string(serialize(i, fmap)))
@@ -113,7 +114,7 @@ func (q *TableQuerier) FindByPK(i interface{}, selfields ...string) error {
 func (q *TableQuerier) Find(i interface{}, fields ...string) error {
 	meta := q.meta
 	idx := -1
-	m := map[int]struct{}{}
+	m := make(map[int]struct{}, len(fields)-1)
 	for _, v := range fields {
 		if index, ok := meta.idx[v]; ok && idx == -1 {
 			idx = index
@@ -123,13 +124,13 @@ func (q *TableQuerier) Find(i interface{}, fields ...string) error {
 	}
 	v := getIndirect(i)
 	if idx != -1 { // use index
-		idxprefix := fmt.Sprintf(uniqueIdxTemplate, q.tid, string(itb(int64(idx))), getFieldStr(v, idx))
+		idxprefix := fmt.Sprintf(idxTemplatePrefix, q.tid, string(itb(int64(idx))), getFieldStr(v, idx))
 		succ := false
 		tree.Larger(idxprefix, 1000, func(k, v string) bool {
 			if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 				return false
 			}
-			ser := tree.Search(v)
+			ser := tree.Search(k[len(idxprefix)+2:])
 			succ, _ = deserializeEQ([]byte(ser), i, m)
 			return !succ
 		})

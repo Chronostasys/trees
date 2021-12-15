@@ -8,7 +8,7 @@ type kvbtree struct {
 
 func makekv() *kvbtree {
 	return &kvbtree{
-		Tree: btree.Make(256),
+		Tree: btree.Make(128),
 	}
 }
 

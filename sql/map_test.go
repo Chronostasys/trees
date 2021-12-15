@@ -3,6 +3,7 @@ package sql
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -87,6 +88,50 @@ func TestRow(t *testing.T) {
 		err := q.Find(re, "TestFloat")
 		if !reflect.DeepEqual(re, item2) {
 			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
+		}
+	})
+}
+func BenchmarkCRUD(b *testing.B) {
+	Register(&Test{})
+	CreateTable(&Test{})
+	q, _ := Table(&Test{})
+	b.Run("benchmark Insert", func(b *testing.B) {
+		items := []*Test{}
+		for i := 0; i < b.N; i++ {
+			item := &Test{}
+			item.TestInt = i
+			item.TestString = strconv.Itoa(i)
+			items = append(items, item)
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			q.Insert(items[i])
+		}
+	})
+	b.Run("benchmark Findpk", func(b *testing.B) {
+		items := []*Test{}
+		for i := 0; i < b.N; i++ {
+			item := &Test{}
+			item.TestInt = i
+			item.TestString = strconv.Itoa(i)
+			items = append(items, item)
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			q.FindByPK(items[i])
+		}
+	})
+	b.Run("benchmark Find idx", func(b *testing.B) {
+		items := []*Test{}
+		for i := 0; i < b.N; i++ {
+			item := &Test{}
+			item.TestInt = i
+			item.TestString = strconv.Itoa(i)
+			items = append(items, item)
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			q.Find(items[i], "TestString")
 		}
 	})
 }
