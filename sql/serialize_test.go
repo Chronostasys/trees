@@ -6,7 +6,7 @@ import (
 )
 
 type Test struct {
-	TestInt    int
+	TestInt    int `sql:"pk"`
 	TestString string
 	TestFloat  float32
 }
@@ -30,14 +30,26 @@ func Test_serialize(t *testing.T) {
 			t.Errorf("value not equal after serialize and selected deserialize. expect: %v got: %v", exp, test)
 		}
 	})
+	t.Run("Test getpk", func(t *testing.T) {
+		pk := metaMap[reflect.TypeOf(*s).String()].getpk(reflect.Indirect(reflect.ValueOf(s)))
+		if pk != string(itb(int64(s.TestInt))) {
+			t.Errorf("expect pk=%v, got %v", itb(int64(s.TestInt)), []byte(pk))
+		}
+	})
 }
 func BenchmarkSerialize(b *testing.B) {
 	Register(&Test{})
 	s := &Test{TestInt: 9, TestString: "dafdsf", TestFloat: 1.1}
+	b.Run("BenchmarkSerialize", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			serialize(s)
+		}
+	})
 	bs := serialize(s)
 	test := &Test{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		deserialize(bs, test)
-	}
+	b.Run("BenchmarkDeserialize", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			deserialize(bs, test)
+		}
+	})
 }
