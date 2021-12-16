@@ -102,6 +102,29 @@ func (q *TableQuerier) Insert(i interface{}) {
 	}
 	tree.Insert(k, string(serialize(i, fmap)))
 }
+func (q *TableQuerier) Update(i interface{}, fields ...string) {
+	meta := q.meta
+	k := fmt.Sprintf(rowTemplate, q.tid, meta.getpk(i))
+	fmap := make(map[int]func(s string), len(meta.idx))
+	oldidx := map[int]struct{}{}
+	for _, v := range fields {
+		if i, ok := meta.idx[v]; ok {
+			oldidx[i] = struct{}{}
+		}
+	}
+	IterSerFields([]byte(tree.Search(k)), meta, func(i int, v string) {
+		if _, ok := oldidx[i]; ok {
+			k1 := fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(i))), v, k)
+			tree.Delete(k1)
+		}
+	})
+	for _, v := range meta.idx {
+		fmap[v] = func(s string) {
+			tree.Insert(fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(v))), s, k), "")
+		}
+	}
+	tree.Insert(k, string(serialize(i, fmap)))
+}
 func (q *TableQuerier) FindByPK(i interface{}, selfields ...string) error {
 	meta := q.meta
 	k := fmt.Sprintf(rowTemplate, q.tid, meta.getpk(i))

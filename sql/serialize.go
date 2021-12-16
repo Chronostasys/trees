@@ -125,6 +125,40 @@ func serialize(i interface{}, fmap map[int]func(s string)) []byte {
 var errDeserialize = fmt.Errorf("deserialize error")
 var emptyMap = map[int]struct{}{}
 
+func IterSerFields(ser []byte, meta seriMeta, callback func(i int, v string)) {
+	idx := 0
+	le := len(ser)
+	for i := 0; i < meta.fieldsN; i++ {
+		fieldmeta := meta.idx2Name[i]
+		var bs []byte
+
+		switch fieldmeta.kind {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			bs = ser[idx : idx+8]
+			idx += 8
+		case reflect.String:
+			if idx+8 > le {
+				return
+			}
+			l := int(binary.LittleEndian.Uint64(ser[idx : idx+8]))
+			idx += 8
+			if idx+l > le {
+				return
+			}
+			bs = ser[idx : idx+l]
+
+			idx += l
+		case reflect.Float32, reflect.Float64:
+			if idx+8 > le {
+				return
+			}
+			bs = ser[idx : idx+8]
+			idx += 8
+		}
+		callback(i, string(bs))
+	}
+}
+
 func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields ...string) (succ bool, err error) {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	meta := metaMap[v.Type().String()]

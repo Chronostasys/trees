@@ -90,6 +90,24 @@ func TestRow(t *testing.T) {
 			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
 		}
 	})
+	t.Run("test update", func(t *testing.T) {
+		re := &Test{TestString: "btest"}
+		i := &Test{
+			TestInt:    11,
+			TestString: "btest",
+			TestFloat:  9.33,
+		}
+		q.Update(i, "TestString")
+		err := q.Find(re, "TestString")
+		if !reflect.DeepEqual(re, i) {
+			t.Errorf("expect search result %v, got %v. err=%v", i, re, err)
+		}
+		re = &Test{TestString: "test"}
+		err = q.Find(re, "TestString")
+		if !reflect.DeepEqual(re, item2) {
+			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
+		}
+	})
 }
 func BenchmarkCRUD(b *testing.B) {
 	Register(&Test{})
