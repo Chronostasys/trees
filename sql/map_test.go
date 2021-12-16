@@ -8,6 +8,7 @@ import (
 )
 
 func TestTable(t *testing.T) {
+	SetKV(MakeLocalInMemKV())
 	tableNames := []interface{}{"test_table1", 1}
 	for _, v := range tableNames {
 		CreateTable(v)
@@ -35,6 +36,7 @@ func TestTable(t *testing.T) {
 }
 
 func TestRow(t *testing.T) {
+	SetKV(MakeLocalInMemKV())
 	Register(&Test{})
 	CreateTable(&Test{})
 	q, _ := Table(&Test{})
@@ -71,21 +73,21 @@ func TestRow(t *testing.T) {
 	})
 	t.Run("test find by index", func(t *testing.T) {
 		re := &Test{TestString: "test"}
-		err := q.Find(re, "TestString")
+		err := q.FindOne(re, "TestString")
 		if !reflect.DeepEqual(re, item) {
 			t.Errorf("expect search result %v, got %v. err=%v", item, re, err)
 		}
 	})
 	t.Run("test find by multi query with single index", func(t *testing.T) {
 		re := &Test{TestString: "test", TestFloat: 9.34}
-		err := q.Find(re, "TestString", "TestFloat")
+		err := q.FindOne(re, "TestString", "TestFloat")
 		if !reflect.DeepEqual(re, item2) {
 			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
 		}
 	})
 	t.Run("test find no index", func(t *testing.T) {
 		re := &Test{TestFloat: 9.34}
-		err := q.Find(re, "TestFloat")
+		err := q.FindOne(re, "TestFloat")
 		if !reflect.DeepEqual(re, item2) {
 			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
 		}
@@ -98,18 +100,19 @@ func TestRow(t *testing.T) {
 			TestFloat:  9.33,
 		}
 		q.Update(i, "TestString")
-		err := q.Find(re, "TestString")
+		err := q.FindOne(re, "TestString")
 		if !reflect.DeepEqual(re, i) {
 			t.Errorf("expect search result %v, got %v. err=%v", i, re, err)
 		}
 		re = &Test{TestString: "test"}
-		err = q.Find(re, "TestString")
+		err = q.FindOne(re, "TestString")
 		if !reflect.DeepEqual(re, item2) {
 			t.Errorf("expect search result %v, got %v. err=%v", item2, re, err)
 		}
 	})
 }
 func BenchmarkCRUD(b *testing.B) {
+	SetKV(MakeLocalInMemKV())
 	Register(&Test{})
 	CreateTable(&Test{})
 	q, _ := Table(&Test{})
@@ -149,7 +152,7 @@ func BenchmarkCRUD(b *testing.B) {
 		}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			q.Find(items[i], "TestString")
+			q.FindOne(items[i], "TestString")
 		}
 	})
 }

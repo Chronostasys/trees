@@ -19,10 +19,14 @@ const (
 )
 
 var (
-	tree           = makekv()
+	tree           KV
 	errNoSuchTable = fmt.Errorf("no such table")
 	errNotfound    = fmt.Errorf("not found")
 )
+
+func SetKV(kv KV) {
+	tree = kv
+}
 
 func getIndirect(i interface{}) reflect.Value {
 	return reflect.Indirect(reflect.ValueOf(i))
@@ -134,7 +138,7 @@ func (q *TableQuerier) FindByPK(i interface{}, selfields ...string) error {
 	}
 	return nil
 }
-func (q *TableQuerier) Find(i interface{}, fields ...string) error {
+func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
 	meta := q.meta
 	idx := -1
 	m := make(map[int]struct{}, len(fields)-1)

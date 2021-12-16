@@ -6,7 +6,14 @@ type kvbtree struct {
 	*btree.Tree
 }
 
-func makekv() *kvbtree {
+type KV interface {
+	Insert(k, v string)
+	Delete(k string)
+	Search(k string) string
+	Larger(than string, max int, callback func(k, v string) bool)
+}
+
+func MakeLocalInMemKV() KV {
 	return &kvbtree{
 		Tree: btree.Make(128),
 	}
@@ -27,12 +34,6 @@ func (t *kvbtree) Search(k string) string {
 }
 func (t *kvbtree) Larger(than string, max int, callback func(k, v string) bool) {
 	t.Tree.Larger(btree.KV{K: than}, max, func(i btree.Item) bool {
-		kv := i.(btree.KV)
-		return callback(kv.K, kv.V)
-	})
-}
-func (t *kvbtree) LargerOrEq(than string, max int, callback func(k, v string) bool) {
-	t.Tree.LargerOrEq(btree.KV{K: than}, max, func(i btree.Item) bool {
 		kv := i.(btree.KV)
 		return callback(kv.K, kv.V)
 	})

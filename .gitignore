@@ -1,3 +1,5 @@
 .meta
 *.idx
 *.meta
+*.out
+coverage.html
