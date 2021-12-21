@@ -45,11 +45,12 @@ func TestRow(t *testing.T) {
 		TestString: "test",
 		TestFloat:  9.33,
 	}
-	q.Insert(&Test{
+	item1 := &Test{
 		TestInt:    10,
 		TestString: "atest",
 		TestFloat:  9.33,
-	})
+	}
+	q.Insert(item1)
 	item2 := &Test{
 		TestInt:    12,
 		TestString: "test",
@@ -57,6 +58,12 @@ func TestRow(t *testing.T) {
 	}
 	q.Insert(item2)
 	q.Insert(item)
+	item3 := &Test{
+		TestInt:    13,
+		TestString: "btest",
+		TestFloat:  9.34,
+	}
+	q.Insert(item3)
 	t.Run("test find by pk", func(t *testing.T) {
 		re := &Test{TestInt: 11}
 		q.FindByPK(re)
@@ -69,6 +76,57 @@ func TestRow(t *testing.T) {
 		err := q.FindByPK(re)
 		if err != errNotfound {
 			t.Errorf("expect err not found, got %v", err)
+		}
+	})
+	t.Run("test find multi", func(t *testing.T) {
+		re := &Test{TestString: "test"}
+		results := []*Test{}
+		err := q.Find(re, 0, 10, func(i interface{}) bool {
+			t := i.(*Test)
+			results = append(results, &Test{
+				TestInt:    t.TestInt,
+				TestString: t.TestString,
+				TestFloat:  t.TestFloat,
+			})
+			return true
+		}, "TestString")
+		items := []*Test{item, item2}
+		if !reflect.DeepEqual(results, items) {
+			t.Errorf("expect search result %v, got %v. err=%v", items, results, err)
+		}
+	})
+	t.Run("test find multi skip", func(t *testing.T) {
+		re := &Test{TestString: "test"}
+		results := []*Test{}
+		err := q.Find(re, 1, 10, func(i interface{}) bool {
+			t := i.(*Test)
+			results = append(results, &Test{
+				TestInt:    t.TestInt,
+				TestString: t.TestString,
+				TestFloat:  t.TestFloat,
+			})
+			return true
+		}, "TestString")
+		items := []*Test{item2}
+		if !reflect.DeepEqual(results, items) {
+			t.Errorf("expect search result %v, got %v. err=%v", items, results, err)
+		}
+	})
+	t.Run("test find multi limit", func(t *testing.T) {
+		re := &Test{TestString: "test"}
+		results := []*Test{}
+		err := q.Find(re, 0, 1, func(i interface{}) bool {
+			t := i.(*Test)
+			results = append(results, &Test{
+				TestInt:    t.TestInt,
+				TestString: t.TestString,
+				TestFloat:  t.TestFloat,
+			})
+			return true
+		}, "TestString")
+		items := []*Test{item}
+		if !reflect.DeepEqual(results, items) {
+			t.Errorf("expect search result %v, got %v. err=%v", items, results, err)
 		}
 	})
 	t.Run("test find by index", func(t *testing.T) {

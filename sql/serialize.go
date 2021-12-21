@@ -18,6 +18,7 @@ type seriMeta struct {
 	getpk    func(val interface{}) string
 	name     string
 	idx      map[string]int
+	t        reflect.Type
 }
 type fieldMeta struct {
 	name string
@@ -86,6 +87,7 @@ func Register(i interface{}) {
 		name:     tp.Name(),
 		idx:      idx,
 		name2Idx: name2Idx,
+		t:        reflect.TypeOf(i).Elem(),
 	}
 	metaMap[v.Type().String()] = meta
 }

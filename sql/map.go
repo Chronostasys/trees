@@ -139,6 +139,11 @@ func (q *TableQuerier) FindByPK(i interface{}, selfields ...string) error {
 	return nil
 }
 func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
+	return q.Find(i, 0, 1000, func(i interface{}) bool {
+		return false
+	}, fields...)
+}
+func (q *TableQuerier) Find(i interface{}, skip, max int, callback func(i interface{}) bool, fields ...string) error {
 	meta := q.meta
 	idx := -1
 	m := make(map[int]struct{}, len(fields)-1)
@@ -150,15 +155,19 @@ func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
 		}
 	}
 	v := getIndirect(i)
+
 	if idx != -1 { // use index
 		idxprefix := fmt.Sprintf(idxTemplatePrefix, q.tid, string(itb(int64(idx))), getFieldStr(v, idx))
 		succ := false
-		tree.Larger(idxprefix, 1000, 0, func(k, v string) bool {
+		tree.Larger(idxprefix, max, skip, func(k, v string) bool {
 			if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 				return false
 			}
 			ser := tree.Search(k[len(idxprefix)+2:])
 			succ, _ = deserializeEQ([]byte(ser), i, m)
+			if succ {
+				return callback(i)
+			}
 			return !succ
 		})
 		if !succ {
@@ -168,11 +177,14 @@ func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
 	}
 	idxprefix := fmt.Sprintf(rowTemplatePrefix, q.tid)
 	succ := false
-	tree.Larger(idxprefix, 1000, 0, func(k, v string) bool {
+	tree.Larger(idxprefix, max, skip, func(k, v string) bool {
 		if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 			return false
 		}
 		succ, _ = deserializeEQ([]byte(v), i, m)
+		if succ {
+			return callback(i)
+		}
 		return !succ
 	})
 	if !succ {
