@@ -1,5 +1,5 @@
 // map relational query to kv
-package sql
+package query
 
 import (
 	"reflect"

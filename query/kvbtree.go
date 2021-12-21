@@ -1,4 +1,4 @@
-package sql
+package query
 
 import "github.com/Chronostasys/trees/btree"
 
