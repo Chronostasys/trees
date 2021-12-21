@@ -8,16 +8,18 @@ import (
 )
 
 var (
-	metaMap = map[string]seriMeta{}
+	metaMap = map[string]SeriMeta{}
 )
 
-type seriMeta struct {
-	fieldsN  int
-	idx2Name map[int]fieldMeta
-	name2Idx map[string]int
+type SeriMeta struct {
+	FieldsN  int
+	Idx2Name map[int]fieldMeta
+	Name2Idx map[string]int
 	getpk    func(val interface{}) string
-	name     string
-	idx      map[string]int
+	Name     string
+	Idx      map[string]int
+	PKKind   reflect.Kind
+	PKIdx    int
 	t        reflect.Type
 }
 type fieldMeta struct {
@@ -48,7 +50,25 @@ func getFieldStr(v reflect.Value, idx int) string {
 	}
 	return ""
 }
-func Register(i interface{}) {
+
+func (meta *SeriMeta) buildGetPK(i interface{}) {
+	meta.getpk = func(i interface{}) string {
+		v := reflect.Indirect(reflect.ValueOf(i))
+		val := v.Field(meta.PKIdx)
+		switch meta.PKKind {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return string(itb(val.Int()))
+		case reflect.String:
+			return val.String()
+		case reflect.Float32, reflect.Float64:
+			return string(ftb(val.Float()))
+		}
+
+		return ""
+	}
+}
+
+func GetMeta(i interface{}) SeriMeta {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	idxmap := map[int]fieldMeta{}
 	tp := v.Type()
@@ -67,40 +87,34 @@ func Register(i interface{}) {
 		}
 		name2Idx[tp.Field(i).Name] = i
 	}
-	meta := seriMeta{
-		fieldsN:  v.NumField(),
-		idx2Name: idxmap,
-		getpk: func(i interface{}) string {
-			v := reflect.Indirect(reflect.ValueOf(i))
-			val := v.Field(pkidx)
-			switch pkkind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				return string(itb(val.Int()))
-			case reflect.String:
-				return val.String()
-			case reflect.Float32, reflect.Float64:
-				return string(ftb(val.Float()))
-			}
-
-			return ""
-		},
-		name:     tp.Name(),
-		idx:      idx,
-		name2Idx: name2Idx,
+	meta := SeriMeta{
+		FieldsN:  v.NumField(),
+		Idx2Name: idxmap,
+		Name:     v.Type().String(),
+		Idx:      idx,
+		Name2Idx: name2Idx,
+		PKKind:   pkkind,
+		PKIdx:    pkidx,
 		t:        reflect.TypeOf(i).Elem(),
 	}
-	metaMap[v.Type().String()] = meta
+	meta.buildGetPK(i)
+	return meta
+}
+
+func Register(i interface{}) {
+	v := GetMeta(i)
+	metaMap[v.Name] = v
 }
 
 func serialize(i interface{}, fmap map[int]func(s string)) []byte {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	meta := metaMap[v.Type().String()]
-	fieldsN := meta.fieldsN
+	fieldsN := meta.FieldsN
 	enc := []byte{}
 	for i := 0; i < fieldsN; i++ {
 		val := v.Field(i)
 		var bs []byte
-		switch meta.idx2Name[i].kind {
+		switch meta.Idx2Name[i].kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			bs = itb(val.Int())
 		case reflect.String:
@@ -127,11 +141,11 @@ func serialize(i interface{}, fmap map[int]func(s string)) []byte {
 var errDeserialize = fmt.Errorf("deserialize error")
 var emptyMap = map[int]struct{}{}
 
-func IterSerFields(ser []byte, meta seriMeta, callback func(i int, v string)) {
+func IterSerFields(ser []byte, meta SeriMeta, callback func(i int, v string)) {
 	idx := 0
 	le := len(ser)
-	for i := 0; i < meta.fieldsN; i++ {
-		fieldmeta := meta.idx2Name[i]
+	for i := 0; i < meta.FieldsN; i++ {
+		fieldmeta := meta.Idx2Name[i]
 		var bs []byte
 
 		switch fieldmeta.kind {
@@ -161,10 +175,11 @@ func IterSerFields(ser []byte, meta seriMeta, callback func(i int, v string)) {
 	}
 }
 
-func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields ...string) (succ bool, err error) {
+func deserializeEQ(ser []byte, i, into interface{}, eqfields map[int]struct{}, fields ...string) (succ bool, err error) {
 	v := reflect.Indirect(reflect.ValueOf(i))
+	vi := getIndirect(into)
 	meta := metaMap[v.Type().String()]
-	fieldsN := meta.fieldsN
+	fieldsN := meta.FieldsN
 	idx := 0
 	m := make(map[string]struct{}, len(fields))
 	for _, v := range fields {
@@ -172,13 +187,14 @@ func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields 
 	}
 	for i := 0; i < fieldsN; i++ {
 		val := v.Field(i)
-		fieldmeta := meta.idx2Name[i]
+		fieldmeta := meta.Idx2Name[i]
 		set := true
 		if len(fields) != 0 {
 			if _, ok := m[fieldmeta.name]; !ok {
 				set = false
 			}
 		}
+		vset := vi.Field(i)
 		le := len(ser)
 		switch fieldmeta.kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -192,7 +208,7 @@ func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields 
 						return false, nil
 					}
 				} else {
-					val.SetInt(s)
+					vset.SetInt(s)
 				}
 			}
 
@@ -213,7 +229,7 @@ func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields 
 						return false, nil
 					}
 				} else {
-					val.SetString(s)
+					vset.SetString(s)
 				}
 
 			}
@@ -230,7 +246,7 @@ func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields 
 						return false, nil
 					}
 				} else {
-					val.SetFloat(s)
+					vset.SetFloat(s)
 				}
 			}
 			idx += 8
@@ -241,6 +257,6 @@ func deserializeEQ(ser []byte, i interface{}, eqfields map[int]struct{}, fields 
 }
 
 func deserialize(ser []byte, i interface{}, fields ...string) error {
-	_, err := deserializeEQ(ser, i, emptyMap, fields...)
+	_, err := deserializeEQ(ser, i, i, emptyMap, fields...)
 	return err
 }

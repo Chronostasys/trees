@@ -69,7 +69,7 @@ func getNum(k string) int {
 
 func GetTableNames() []string {
 	names := make([]string, 0)
-	tree.Larger(tablePrefix, 1000, 0, func(k, v string) bool {
+	tree.Larger(tablePrefix, 2000, 1000, 0, func(k, v string) bool {
 		if len(k) <= len(tablePrefix) || k[:len(tablePrefix)] != tablePrefix {
 			return false
 		}
@@ -81,7 +81,7 @@ func GetTableNames() []string {
 
 type TableQuerier struct {
 	tid  int
-	meta seriMeta
+	meta SeriMeta
 }
 
 func Table(t interface{}) (*TableQuerier, error) {
@@ -98,8 +98,8 @@ func Table(t interface{}) (*TableQuerier, error) {
 func (q *TableQuerier) Insert(i interface{}) {
 	meta := q.meta
 	k := fmt.Sprintf(rowTemplate, q.tid, meta.getpk(i))
-	fmap := make(map[int]func(s string), len(meta.idx))
-	for _, v := range meta.idx {
+	fmap := make(map[int]func(s string), len(meta.Idx))
+	for _, v := range meta.Idx {
 		fmap[v] = func(s string) {
 			tree.Insert(fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(v))), s, k), "")
 		}
@@ -109,10 +109,10 @@ func (q *TableQuerier) Insert(i interface{}) {
 func (q *TableQuerier) Update(i interface{}, fields ...string) {
 	meta := q.meta
 	k := fmt.Sprintf(rowTemplate, q.tid, meta.getpk(i))
-	fmap := make(map[int]func(s string), len(meta.idx))
+	fmap := make(map[int]func(s string), len(meta.Idx))
 	oldidx := map[int]struct{}{}
 	for _, v := range fields {
-		if i, ok := meta.idx[v]; ok {
+		if i, ok := meta.Idx[v]; ok {
 			oldidx[i] = struct{}{}
 		}
 	}
@@ -122,7 +122,7 @@ func (q *TableQuerier) Update(i interface{}, fields ...string) {
 			tree.Delete(k1)
 		}
 	})
-	for _, v := range meta.idx {
+	for _, v := range meta.Idx {
 		fmap[v] = func(s string) {
 			tree.Insert(fmt.Sprintf(idxTemplate, q.tid, string(itb(int64(v))), s, k), "")
 		}
@@ -139,34 +139,55 @@ func (q *TableQuerier) FindByPK(i interface{}, selfields ...string) error {
 	return nil
 }
 func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
-	return q.Find(i, 0, 1000, func(i interface{}) bool {
+	return q.Find(i, 0, 1, func(i interface{}) bool {
 		return false
 	}, fields...)
 }
-func (q *TableQuerier) Find(i interface{}, skip, max int, callback func(i interface{}) bool, fields ...string) error {
+func appendToSlice(arrPtr, val interface{}) {
+	valuePtr := reflect.ValueOf(arrPtr)
+	value := valuePtr.Elem()
+
+	value.Set(reflect.Append(value, reflect.ValueOf(val)))
+}
+
+func (q *TableQuerier) FindAll(i interface{}, arrptr interface{}, skip, limit int, fields ...string) error {
+	return q.Find(i, 0, limit, func(i interface{}) bool {
+		appendToSlice(arrptr, i)
+		return true
+	}, fields...)
+}
+func (q *TableQuerier) Find(i interface{}, skip, limit int, callback func(i interface{}) bool, fields ...string) error {
 	meta := q.meta
 	idx := -1
 	m := make(map[int]struct{}, len(fields)-1)
 	for _, v := range fields {
-		if index, ok := meta.idx[v]; ok && idx == -1 {
+		if index, ok := meta.Idx[v]; ok && idx == -1 {
 			idx = index
 		} else {
-			m[meta.name2Idx[v]] = struct{}{}
+			m[meta.Name2Idx[v]] = struct{}{}
 		}
 	}
 	v := getIndirect(i)
+	searchLimit := limit
+	if len(fields) != idx {
+		searchLimit = 1000
+	}
 
 	if idx != -1 { // use index
 		idxprefix := fmt.Sprintf(idxTemplatePrefix, q.tid, string(itb(int64(idx))), getFieldStr(v, idx))
 		succ := false
-		tree.Larger(idxprefix, max, skip, func(k, v string) bool {
+		tree.Larger(idxprefix, 2000, searchLimit, skip, func(k, v string) bool {
 			if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 				return false
 			}
 			ser := tree.Search(k[len(idxprefix)+2:])
-			succ, _ = deserializeEQ([]byte(ser), i, m)
+			into := i
+			if limit != 1 {
+				into = reflect.New(meta.t).Interface()
+			}
+			succ, _ = deserializeEQ([]byte(ser), i, into, m)
 			if succ {
-				return callback(i)
+				return callback(into)
 			}
 			return !succ
 		})
@@ -177,13 +198,17 @@ func (q *TableQuerier) Find(i interface{}, skip, max int, callback func(i interf
 	}
 	idxprefix := fmt.Sprintf(rowTemplatePrefix, q.tid)
 	succ := false
-	tree.Larger(idxprefix, max, skip, func(k, v string) bool {
+	tree.Larger(idxprefix, 2000, searchLimit, skip, func(k, v string) bool {
 		if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 			return false
 		}
-		succ, _ = deserializeEQ([]byte(v), i, m)
+		into := i
+		if limit != 1 {
+			into = reflect.New(meta.t).Interface()
+		}
+		succ, _ = deserializeEQ([]byte(v), i, into, m)
 		if succ {
-			return callback(i)
+			return callback(into)
 		}
 		return !succ
 	})

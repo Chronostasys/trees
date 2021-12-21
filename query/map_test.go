@@ -129,6 +129,15 @@ func TestRow(t *testing.T) {
 			t.Errorf("expect search result %v, got %v. err=%v", items, results, err)
 		}
 	})
+	t.Run("test find all", func(t *testing.T) {
+		re := &Test{TestString: "test"}
+		results := []*Test{}
+		err := q.FindAll(re, &results, 0, 10, "TestString")
+		items := []*Test{item, item2}
+		if !reflect.DeepEqual(results, items) {
+			t.Errorf("expect search result %v, got %v. err=%v", items, results, err)
+		}
+	})
 	t.Run("test find by index", func(t *testing.T) {
 		re := &Test{TestString: "test"}
 		err := q.FindOne(re, "TestString")

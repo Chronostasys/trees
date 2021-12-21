@@ -204,7 +204,7 @@ func TestTree_LargerOrEq(t *testing.T) {
 		tree.Insert(Int(v))
 	}
 	n := 1000
-	tree.LargerOrEq(Int(n), 2000, 1, func(i Item) bool {
+	tree.LargerOrEq(Int(n), 3000, 2000, 1, func(i Item) bool {
 		if n != i.(Int).Int()-1 {
 			t.Fatalf("expect %d, got %d", n, i.(Int).Int())
 		}
@@ -215,7 +215,7 @@ func TestTree_LargerOrEq(t *testing.T) {
 		t.Errorf("expect n=3000 after test, got n=%d", n)
 	}
 	n = 999
-	tree.Larger(Int(n), 2000, 1, func(i Item) bool {
+	tree.Larger(Int(n), 3000, 2000, 1, func(i Item) bool {
 		if n+1 != i.(Int).Int()-1 {
 			t.Fatalf("expect %d, got %d", n+1, i.(Int).Int())
 		}

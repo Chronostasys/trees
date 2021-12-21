@@ -10,7 +10,7 @@ type KV interface {
 	Insert(k, v string)
 	Delete(k string)
 	Search(k string) string
-	Larger(than string, max, skip int, callback func(k, v string) bool)
+	Larger(than string, max, limit, skip int, callback func(k, v string) bool)
 }
 
 func MakeLocalInMemKV() KV {
@@ -32,8 +32,8 @@ func (t *kvbtree) Search(k string) string {
 	}
 	return re.(btree.KV).V
 }
-func (t *kvbtree) Larger(than string, max, skip int, callback func(k, v string) bool) {
-	t.Tree.Larger(btree.KV{K: than}, max, skip, func(i btree.Item) bool {
+func (t *kvbtree) Larger(than string, max, limit, skip int, callback func(k, v string) bool) {
+	t.Tree.Larger(btree.KV{K: than}, max, limit, skip, func(i btree.Item) bool {
 		kv := i.(btree.KV)
 		return callback(kv.K, kv.V)
 	})
