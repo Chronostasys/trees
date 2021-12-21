@@ -69,7 +69,7 @@ func getNum(k string) int {
 
 func GetTableNames() []string {
 	names := make([]string, 0)
-	tree.Larger(tablePrefix, 1000, func(k, v string) bool {
+	tree.Larger(tablePrefix, 1000, 0, func(k, v string) bool {
 		if len(k) <= len(tablePrefix) || k[:len(tablePrefix)] != tablePrefix {
 			return false
 		}
@@ -153,7 +153,7 @@ func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
 	if idx != -1 { // use index
 		idxprefix := fmt.Sprintf(idxTemplatePrefix, q.tid, string(itb(int64(idx))), getFieldStr(v, idx))
 		succ := false
-		tree.Larger(idxprefix, 1000, func(k, v string) bool {
+		tree.Larger(idxprefix, 1000, 0, func(k, v string) bool {
 			if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 				return false
 			}
@@ -168,7 +168,7 @@ func (q *TableQuerier) FindOne(i interface{}, fields ...string) error {
 	}
 	idxprefix := fmt.Sprintf(rowTemplatePrefix, q.tid)
 	succ := false
-	tree.Larger(idxprefix, 1000, func(k, v string) bool {
+	tree.Larger(idxprefix, 1000, 0, func(k, v string) bool {
 		if len(k) <= len(idxprefix) || k[:len(idxprefix)] != idxprefix {
 			return false
 		}
