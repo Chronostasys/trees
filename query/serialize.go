@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -30,12 +31,16 @@ type fieldMeta struct {
 func itb(i int64) []byte {
 	bs := [8]byte{}
 	binary.LittleEndian.PutUint64(bs[:], uint64(i))
-	return bs[:]
+	nbs := make([]byte, 12)
+	base64.StdEncoding.Encode(nbs, bs[:])
+	return nbs[:]
 }
 func ftb(i float64) []byte {
 	bs := [8]byte{}
 	binary.LittleEndian.PutUint64(bs[:], math.Float64bits(i))
-	return bs[:]
+	nbs := make([]byte, 12)
+	base64.StdEncoding.Encode(nbs, bs[:])
+	return nbs[:]
 }
 
 func getFieldStr(v reflect.Value, idx int) string {
@@ -141,6 +146,12 @@ func serialize(i interface{}, fmap map[int]func(s string)) []byte {
 var errDeserialize = fmt.Errorf("deserialize error")
 var emptyMap = map[int]struct{}{}
 
+func base642bs(bs []byte) []byte {
+	nbs := [8]byte{}
+	base64.StdEncoding.Decode(nbs[:], bs)
+	return nbs[:]
+}
+
 func IterSerFields(ser []byte, meta SeriMeta, callback func(i int, v string)) {
 	idx := 0
 	le := len(ser)
@@ -150,14 +161,14 @@ func IterSerFields(ser []byte, meta SeriMeta, callback func(i int, v string)) {
 
 		switch fieldmeta.kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			bs = ser[idx : idx+8]
-			idx += 8
+			bs = ser[idx : idx+12]
+			idx += 12
 		case reflect.String:
-			if idx+8 > le {
+			if idx+12 > le {
 				return
 			}
-			l := int(binary.LittleEndian.Uint64(ser[idx : idx+8]))
-			idx += 8
+			l := int(binary.LittleEndian.Uint64(base642bs(ser[idx : idx+12])))
+			idx += 12
 			if idx+l > le {
 				return
 			}
@@ -165,11 +176,11 @@ func IterSerFields(ser []byte, meta SeriMeta, callback func(i int, v string)) {
 
 			idx += l
 		case reflect.Float32, reflect.Float64:
-			if idx+8 > le {
+			if idx+12 > le {
 				return
 			}
-			bs = ser[idx : idx+8]
-			idx += 8
+			bs = ser[idx : idx+12]
+			idx += 12
 		}
 		callback(i, string(bs))
 	}
@@ -199,10 +210,10 @@ func deserializeEQ(ser []byte, i, into interface{}, eqfields map[int]struct{}, f
 		switch fieldmeta.kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if set {
-				if idx+8 > le {
+				if idx+12 > le {
 					return false, errDeserialize
 				}
-				s := int64(binary.LittleEndian.Uint64(ser[idx : idx+8]))
+				s := int64(binary.LittleEndian.Uint64(base642bs(ser[idx : idx+12])))
 				if _, ok := eqfields[i]; ok {
 					if val.Int() != s {
 						return false, nil
@@ -212,13 +223,13 @@ func deserializeEQ(ser []byte, i, into interface{}, eqfields map[int]struct{}, f
 				}
 			}
 
-			idx += 8
+			idx += 12
 		case reflect.String:
-			if idx+8 > le {
+			if idx+12 > le {
 				return false, errDeserialize
 			}
-			l := int(binary.LittleEndian.Uint64(ser[idx : idx+8]))
-			idx += 8
+			l := int(binary.LittleEndian.Uint64(base642bs(ser[idx : idx+12])))
+			idx += 12
 			if set {
 				if idx+l > le {
 					return false, errDeserialize
@@ -237,10 +248,10 @@ func deserializeEQ(ser []byte, i, into interface{}, eqfields map[int]struct{}, f
 			idx += l
 		case reflect.Float32, reflect.Float64:
 			if set {
-				if idx+8 > le {
+				if idx+12 > le {
 					return false, errDeserialize
 				}
-				s := math.Float64frombits(binary.LittleEndian.Uint64(ser[idx : idx+8]))
+				s := math.Float64frombits(binary.LittleEndian.Uint64(base642bs(ser[idx : idx+12])))
 				if _, ok := eqfields[i]; ok {
 					if val.Float() != s {
 						return false, nil
@@ -249,7 +260,7 @@ func deserializeEQ(ser []byte, i, into interface{}, eqfields map[int]struct{}, f
 					vset.SetFloat(s)
 				}
 			}
-			idx += 8
+			idx += 12
 		}
 
 	}
