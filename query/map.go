@@ -35,11 +35,16 @@ func getTypeName(t interface{}) string {
 	return getIndirect(t).Type().String()
 }
 func CreateTable(t interface{}) int {
+	key := fmt.Sprintf("%s%s", tablePrefix, getTypeName(t))
+	ext := tree.Search(key)
+	if i, err := strconv.Atoi(ext); err == nil { // exist
+		return i
+	}
 	id := GetTableMaxID()
 	id++
 	idstr := strconv.Itoa(id)
 	tree.Insert(tNumKey, idstr)
-	tree.Insert(fmt.Sprintf("%s%s", tablePrefix, getTypeName(t)), idstr)
+	tree.Insert(key, idstr)
 	return id
 }
 func DeleteTable(t interface{}) {
